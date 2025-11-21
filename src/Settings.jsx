@@ -120,6 +120,9 @@ export default function SettingsPage() {
                     <Link to="/settings" className="nav-item active">
                         <i className="fas fa-cog"></i><span>Settings</span>
                     </Link>
+                    <Link to="/trends2" className="nav-item">
+                        <span>Keywords</span>
+                    </Link>
                 </nav>
             </div>
 

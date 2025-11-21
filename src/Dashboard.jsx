@@ -165,6 +165,9 @@ export default function Dashboard() {
                         <i className="fas fa-cog"></i>
                         <span>Settings</span>
                     </Link>
+                    <Link to="/trends2" className="nav-item">
+                        <span>Keywords</span>
+                    </Link>
                 </nav>
             </div>
 

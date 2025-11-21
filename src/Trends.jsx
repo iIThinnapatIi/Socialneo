@@ -13,8 +13,10 @@ const pickDate = (r) =>
 
 const parseTopics = (r) => {
     if (Array.isArray(r.topics) && r.topics.length) return r.topics;
+
     const tj = r.topicsJson;
     if (!tj) return [];
+
     const str = String(tj).trim();
     if (str.startsWith("[") || str.startsWith("{")) {
         try {
@@ -22,32 +24,35 @@ const parseTopics = (r) => {
             if (Array.isArray(arr)) return arr.map(String);
         } catch (_) {}
     }
-    return str.split(",").map((s) => s.trim()).filter(Boolean);
+    return str
+        .split(",")
+        .map((s) => s.trim())
+        .filter(Boolean);
 };
 
 // STOP Words
 const STOP = new Set([
-    "the","a","an","of","and","or","to","in","on","for","with","at","by","is","are","am",
-    "ค่ะ","คะ","ครับ","และ","หรือ","ที่","ว่า","เป็น","มี","ให้","ได้","ไป","มา","แล้ว","เลย","ก็","อยู่","เรา","คุณ","เขา","จาก","ถึง","กับ","ใน","บน","ของ","ว่า",
+    "the", "a", "an", "of", "and", "or", "to", "in", "on", "for", "with", "at", "by", "is", "are", "am",
+    "ค่ะ","คะ","ครับ","และ","หรือ","ที่","ว่า","เป็น","มี","ให้","ได้","ไป","มา","แล้ว","เลย","ก็",
+    "อยู่","เรา","คุณ","เขา","จาก","ถึง","กับ","ใน","บน","ของ","ว่า",
 ]);
-const tokenizeText = (t="") =>
-    t
-        .toLowerCase()
+
+const tokenizeText = (t = "") =>
+    t.toLowerCase()
         .replace(/[^\p{L}\p{N}\s]/gu, " ")
         .split(/\s+/)
         .filter(Boolean)
         .filter((w) => w.length > 1 && !STOP.has(w));
 
 export default function Trends() {
-
-    // ดึงข้อมูลจริง
+    /* ---------- ดึงข้อมูลจริงจาก backend ---------- */
     const { data, loading, err } = useFetch(() => getTweetAnalysis(), []);
     const rows = data || [];
 
-    // ค้นหาโพสต์
+    /* ---------- search box ของ Trending Posts ---------- */
     const [q, setQ] = useState("");
 
-    /* ---------- CUSTOM KEYWORDS ---------- */
+    /* ---------- Custom Keywords (เพิ่มคำใหม่เข้า backend) ---------- */
     const [word, setWord] = useState("");
     const [label, setLabel] = useState("negative");
 
@@ -64,47 +69,14 @@ export default function Trends() {
         setWord("");
     };
 
-    // ===== Pantip Temp Mode =====
-    const [pantipKeyword, setPantipKeyword] = useState("");
-    const [tempPantipPosts, setTempPantipPosts] = useState([]);
-    const [tempMode, setTempMode] = useState(false);
-
-    async function fetchPantipTemp() {
-        if (!pantipKeyword.trim()) {
-            alert("กรุณาใส่คำค้นหา Pantip");
-            return;
-        }
-
-        const res = await fetch(
-            "http://localhost:8082/pantip/temp-fetch?keyword=" + encodeURIComponent(pantipKeyword)
-        );
-
-        const data = await res.json();
-        setTempPantipPosts(data);
-        setTempMode(true);
-    }
-
-    async function savePantipTemp() {
-        await fetch("http://localhost:8082/pantip/save-temp", { method: "POST" });
-        alert("บันทึกและวิเคราะห์สำเร็จ!");
-        setTempPantipPosts([]);
-        setTempMode(false);
-    }
-
-    async function cancelPantipTemp() {
-        await fetch("http://localhost:8082/pantip/clear-temp", { method: "POST" });
-        alert("ยกเลิกแล้ว ข้อมูลจะไม่ถูกบันทึก");
-        setTempPantipPosts([]);
-        setTempMode(false);
-    }
-
-    // ===== สร้าง Top Keywords =====
+    /* ---------- สร้าง Top Keywords จากข้อมูลทั้งหมด ---------- */
     const { keywordsTop10, totalMentions } = useMemo(() => {
         const freq = new Map();
         let count = 0;
 
         for (const r of rows) {
             count++;
+
             const topics = parseTopics(r);
             if (topics.length) {
                 for (const t of topics) {
@@ -127,7 +99,7 @@ export default function Trends() {
         return { keywordsTop10: top, totalMentions: count };
     }, [rows]);
 
-    // ===== Trending Posts =====
+    /* ---------- เลือกโพสต์จริงมาเป็น Trending Posts ---------- */
     const trendingPosts = useMemo(() => {
         const topSet = new Set(keywordsTop10.map((x) => x.keyword));
         const pickedByKey = new Map();
@@ -135,9 +107,12 @@ export default function Trends() {
         for (const r of rows) {
             const ts = parseTopics(r);
             const titleCand =
-                (ts && ts.length ? ts.join(", ") : (r.text || "").slice(0, 60)) || "โพสต์เกี่ยวกับ";
+                (ts && ts.length ? ts.join(", ") : (r.text || "").slice(0, 60)) ||
+                "โพสต์เกี่ยวกับ";
             const d = pickDate(r);
-            const url = r.tweetId ? `https://x.com/i/web/status/${r.tweetId}` : "#";
+            const url = r.tweetId
+                ? `https://x.com/i/web/status/${r.tweetId}`
+                : "#";
 
             const apply = (kw) => {
                 const prev = pickedByKey.get(kw);
@@ -153,7 +128,9 @@ export default function Trends() {
             };
 
             if (ts.length) {
-                ts.forEach((k) => { if (topSet.has(k)) apply(k); });
+                ts.forEach((k) => {
+                    if (topSet.has(k)) apply(k);
+                });
             } else if (r.text) {
                 for (const w of tokenizeText(r.text)) {
                     if (topSet.has(w)) apply(w);
@@ -165,9 +142,12 @@ export default function Trends() {
             .sort((a, b) => String(b.date).localeCompare(String(a.date)))
             .slice(0, 10);
 
+        // ถ้ายังไม่มีอะไรเลย ให้หยิบโพสต์ล่าสุด 5 อันมาแทน
         if (list.length === 0) {
             return [...rows]
-                .sort((a, b) => String(pickDate(b)).localeCompare(String(pickDate(a))))
+                .sort((a, b) =>
+                    String(pickDate(b)).localeCompare(String(pickDate(a)))
+                )
                 .slice(0, 5)
                 .map((r, i) => ({
                     id: r.id ?? r.tweetId ?? i,
@@ -176,31 +156,35 @@ export default function Trends() {
                         (r.text ? r.text.slice(0, 60) : "โพสต์"),
                     date: pickDate(r),
                     source: r.source || "X",
-                    url: r.tweetId ? `https://x.com/i/web/status/${r.tweetId}` : "#",
+                    url: r.tweetId
+                        ? `https://x.com/i/web/status/${r.tweetId}`
+                        : "#",
                 }));
         }
 
         return list;
     }, [rows, keywordsTop10]);
 
-    // FILTER
+    /* ---------- filter Trending Posts ด้วยช่องค้นหา q ---------- */
     const filteredTrending = useMemo(() => {
         const qq = q.trim().toLowerCase();
         if (!qq) return trendingPosts;
-        return trendingPosts.filter(
-            (p) => `${p.title} ${p.source}`.toLowerCase().includes(qq)
+
+        return trendingPosts.filter((p) =>
+            `${p.title} ${p.source}`.toLowerCase().includes(qq)
         );
     }, [q, trendingPosts]);
 
+    /* ---------- UI ---------- */
     return (
         <div className="trends-layout">
-
             {/* Sidebar */}
             <aside className="sidebar">
                 <div className="logo-container">
                     <img
                         src="https://upload.wikimedia.org/wikipedia/th/f/f5/%E0%B8%95%E0%B8%A3%E0%B8%B2%E0%B8%A1%E0%B8%AB%E0%B8%B2%E0%B8%A7%E0%B8%B4%E0%B8%97%E0%B8%A2%E0%B8%B2%E0%B8%A5%E0%B8%B1%E0%B8%A2%E0%B8%AB%E0%B8%AD%E0%B8%81%E0%B8%B2%E0%B8%A3%E0%B8%84%E0%B9%89%E0%B8%B2%E0%B9%84%E0%B8%97%E0%B8%A2.svg"
-                        width="100%" alt="UTCC"
+                        width="100%"
+                        alt="UTCC"
                     />
                     <span className="logo-utcc"> UTCC </span>
                     <span className="logo-social"> Social</span>
@@ -208,16 +192,23 @@ export default function Trends() {
 
                 <nav className="nav-menu">
                     <Link to="/dashboard" className="nav-item">
-                        <i className="far fa-chart-line"></i><span>Dashboard</span>
+                        <i className="far fa-chart-line"></i>
+                        <span>Dashboard</span>
                     </Link>
                     <Link to="/mentions" className="nav-item">
-                        <i className="fas fa-comment-dots"></i><span>Mentions</span>
+                        <i className="fas fa-comment-dots"></i>
+                        <span>Mentions</span>
                     </Link>
                     <Link to="/trends" className="nav-item active">
-                        <i className="fas fa-stream"></i><span>Trends</span>
+                        <i className="fas fa-stream"></i>
+                        <span>Trends</span>
                     </Link>
                     <Link to="/settings" className="nav-item">
-                        <i className="fas fa-cog"></i><span>Settings</span>
+                        <i className="fas fa-cog"></i>
+                        <span>Settings</span>
+                    </Link>
+                    <Link to="/trends2" className="nav-item">
+                        <span>Keywords</span>
                     </Link>
                 </nav>
             </aside>
@@ -227,128 +218,20 @@ export default function Trends() {
                 <header className="page-header">
                     <div className="title-wrap">
                         <h1 className="page-title">Trends</h1>
-                        <div className="page-sub">* ดึงจากฐานข้อมูล <b>tweet_analysis</b> · รวมทั้งหมด {totalMentions} รายการ</div>
+                        <div className="page-sub">
+                            * ดึงจากฐานข้อมูล <b>tweet_analysis</b> ·
+                            รวมทั้งหมด {totalMentions} รายการ
+                        </div>
                     </div>
                 </header>
 
                 <div className="content-wrap">
-
-                    {/* ================= Pantip Fetch Section ================ */}
-                    <section className="card" style={{ marginBottom: "20px" }}>
-                        <h3 className="widget-title" style={{ marginBottom: "10px" }}>
-                            ดึงข้อมูลจาก Pantip (โหมดทดลอง)
-                        </h3>
-
-                        <div style={{ display: "flex", gap: "10px", flexWrap: "wrap" }}>
-                            <input
-                                value={pantipKeyword}
-                                onChange={(e) => setPantipKeyword(e.target.value)}
-                                placeholder="พิมพ์คำค้นหา Pantip เช่น หอการค้า"
-                                style={{
-                                    flex: "1",
-                                    minWidth: "260px",
-                                    padding: "8px 10px",
-                                    border: "1px solid #cbd5e1",
-                                    borderRadius: "10px",
-                                }}
-                            />
-
-                            <button
-                                onClick={fetchPantipTemp}
-                                style={{
-                                    padding: "8px 16px",
-                                    background: "#2563eb",
-                                    color: "white",
-                                    borderRadius: "10px",
-                                    border: "none",
-                                    cursor: "pointer",
-                                    fontWeight: "600",
-                                }}
-                            >
-                                ค้นหา Pantip
-                            </button>
-                        </div>
-
-                        {/* แสดงผล TEMP */}
-                        {tempMode && (
-                            <div style={{ marginTop: "20px" }}>
-                                <h4 style={{ marginBottom: "10px" }}>
-                                    📌 ผลการดึงข้อมูลแบบยังไม่บันทึก (Preview)
-                                </h4>
-
-                                <div
-                                    style={{
-                                        display: "flex",
-                                        gap: "10px",
-                                        marginBottom: "12px",
-                                        flexWrap: "wrap",
-                                    }}
-                                >
-                                    <button
-                                        onClick={savePantipTemp}
-                                        style={{
-                                            padding: "8px 14px",
-                                            background: "#16a34a",
-                                            color: "white",
-                                            borderRadius: "10px",
-                                            border: "none",
-                                            cursor: "pointer",
-                                            fontWeight: "600",
-                                        }}
-                                    >
-                                        ✔ วิเคราะห์ / บันทึก
-                                    </button>
-
-                                    <button
-                                        onClick={cancelPantipTemp}
-                                        style={{
-                                            padding: "8px 14px",
-                                            background: "#dc2626",
-                                            color: "white",
-                                            borderRadius: "10px",
-                                            border: "none",
-                                            cursor: "pointer",
-                                            fontWeight: "600",
-                                        }}
-                                    >
-                                        ✖ ยกเลิก
-                                    </button>
-                                </div>
-
-                                {/* รายการโพสต์ TEMP */}
-                                <div style={{ maxHeight: "260px", overflowY: "auto" }}>
-                                    {tempPantipPosts.length === 0 ? (
-                                        <div>ไม่มีข้อมูล</div>
-                                    ) : (
-                                        tempPantipPosts.map((p, i) => (
-                                            <div
-                                                key={i}
-                                                style={{
-                                                    padding: "10px",
-                                                    borderBottom: "1px solid #e2e8f0",
-                                                }}
-                                            >
-                                                <div style={{ fontWeight: "700", color: "#0f172a" }}>
-                                                    {p.title}
-                                                </div>
-                                                <div style={{ fontSize: "14px", color: "#475569" }}>
-                                                    {p.preview || p.content?.slice(0, 100)}...
-                                                </div>
-                                            </div>
-                                        ))
-                                    )}
-                                </div>
-                            </div>
-                        )}
-                    </section>
-                    {/* ================= END Pantip Section ================ */}
-
-                    {/* Trending Posts */}
+                    {/* ---------- Trending Posts ---------- */}
                     <section className="card">
                         <div className="card-head">
                             <h3 className="widget-title">Trending Posts</h3>
 
-                            {/* Search */}
+                            {/* search box */}
                             <input
                                 className="search"
                                 placeholder="🔍 ค้นหาโพสต์"
@@ -356,7 +239,7 @@ export default function Trends() {
                                 onChange={(e) => setQ(e.target.value)}
                             />
 
-                            {/* ★ Custom Keyword Form */}
+                            {/* ฟอร์มเพิ่ม custom keyword ส่งไป backend */}
                             <div className="custom-add-box">
                                 <input
                                     value={word}
@@ -364,7 +247,7 @@ export default function Trends() {
                                     placeholder="เพิ่มคำเพื่อใช้ในการประมวลผล Sentiment"
                                 />
 
-                                <select 
+                                <select
                                     value={label}
                                     onChange={(e) => setLabel(e.target.value)}
                                 >
@@ -378,7 +261,9 @@ export default function Trends() {
                         </div>
 
                         {err && (
-                            <div className="error-card">โหลดข้อมูลไม่สำเร็จ: {String(err)}</div>
+                            <div className="error-card">
+                                โหลดข้อมูลไม่สำเร็จ: {String(err)}
+                            </div>
                         )}
 
                         {loading ? (
@@ -399,8 +284,17 @@ export default function Trends() {
                                         <div>{p.source}</div>
                                         <div>
                                             {p.url && p.url !== "#" ? (
-                                                <a className="link" href={p.url} target="_blank" rel="noreferrer">เปิดลิงก์</a>
-                                            ) : "-"}
+                                                <a
+                                                    className="link"
+                                                    href={p.url}
+                                                    target="_blank"
+                                                    rel="noreferrer"
+                                                >
+                                                    เปิดลิงก์
+                                                </a>
+                                            ) : (
+                                                "-"
+                                            )}
                                         </div>
                                     </div>
                                 ))}

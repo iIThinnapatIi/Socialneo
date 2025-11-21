@@ -9,6 +9,6 @@ import { applyTheme } from "./theme/applyTheme";
     try {
         const s = await getSettings();
         applyTheme(s?.theme); // เซ็ต class บน body ก่อน mount
-    } catch {}
+    } catch { /* empty */ }
     ReactDOM.createRoot(document.getElementById("root")).render(<App />);
 })();

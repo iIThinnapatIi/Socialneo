@@ -1,22 +1,23 @@
+// src/Homepage.jsx
 import React, { useMemo, useState, useEffect } from "react";
 import "./Homepage.css";
 import { Link } from "react-router-dom";
 
-// API
-import { getTweetAnalysis } from "./services/api";
+// ================== API / Hooks ==================
+import { API_BASE, API_PREFIX, getTweetAnalysis } from "./services/api";
 import { useFetch } from "./hooks/useFetch";
 
-// components
+// ================== Components ==================
 import FiltersBar from "./components/FiltersBar";
 import SentimentOverview from "./components/SentimentOverview";
 import MentionsTrend from "./components/MentionsTrend";
 import MetricsRow from "./components/MetricsRow";
 
-// Excel libraries
+// ================== Excel Lib ==================
 import * as XLSX from "xlsx";
 import { saveAs } from "file-saver";
 
-/* ========== HELPERS =========== */
+/* ================== HELPERS ================== */
 const normSent = (s = "") => {
     const x = s.toLowerCase();
     if (x === "pos" || x === "positive") return "positive";
@@ -29,7 +30,6 @@ const pickDate = (r) =>
         .toString()
         .slice(0, 10);
 
-// Normalize คณะ
 const normalizeFaculty = (f = "") => {
     if (!f) return "มหาวิทยาลัยโดยรวม";
 
@@ -53,8 +53,9 @@ const normalizeFaculty = (f = "") => {
     return "มหาวิทยาลัยโดยรวม";
 };
 
-/* ========== MAIN COMPONENT =========== */
+/* ================== MAIN COMPONENT ================== */
 function Homepage() {
+    // ---------- state สำหรับตัวกรอง ----------
     const [q, setQ] = useState("");
     const [faculty, setFaculty] = useState("ทั้งหมด");
     const [sent, setSent] = useState("ทั้งหมด");
@@ -78,7 +79,7 @@ function Homepage() {
         "มหาวิทยาลัยโดยรวม",
     ];
 
-    /* --- LOAD DATA --- */
+    // ---------- ดึงข้อมูลจาก backend ----------
     const { data, loading } = useFetch(() => getTweetAnalysis(), []);
     const [rows, setRows] = useState([]);
 
@@ -86,27 +87,32 @@ function Homepage() {
         if (data) setRows(data);
     }, [data]);
 
-    /* --- UPDATE SENTIMENT --- */
+    // ---------- อัปเดต sentiment ทีละแถว ----------
     const updateSentiment = async (id, newValue) => {
         try {
+            // อัปเดตบนหน้าจอทันที (optimistic update)
             setRows((prev) =>
                 prev.map((r) =>
                     r.id === id ? { ...r, sentimentLabel: newValue } : r
                 )
             );
 
-            await fetch(`http://localhost:8082/api/sentiment/update/${id}`, {
-                method: "PUT",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ sentiment: newValue }),
-            });
+            // ✅ ยิงไป backend ให้ตรง path: /api/analysis/sentiment/update/{id}
+            await fetch(
+                `${API_BASE}${API_PREFIX}/analysis/sentiment/update/${id}`,
+                {
+                    method: "PUT",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ sentiment: newValue }),
+                }
+            );
         } catch (e) {
             console.error(e);
             alert("อัปเดตไม่สำเร็จ");
         }
     };
 
-    /* --- FILTER --- */
+    // ---------- FILTER ข้อมูล ----------
     const filtered = useMemo(() => {
         return rows.filter((r) => {
             const facNorm = normalizeFaculty(r.faculty);
@@ -115,7 +121,6 @@ function Homepage() {
 
             if (faculty !== "ทั้งหมด" && facNorm !== faculty) return false;
             if (sent !== "ทั้งหมด" && s !== sent) return false;
-
             if (from && day < new Date(from)) return false;
             if (to && day > new Date(to)) return false;
 
@@ -123,12 +128,11 @@ function Homepage() {
                 const text = `${r.text} ${r.faculty}`.toLowerCase();
                 if (!text.includes(q.toLowerCase())) return false;
             }
-
             return true;
         });
     }, [rows, q, faculty, sent, from, to]);
 
-    /* --- SUMMARY --- */
+    // ---------- SUMMARY ----------
     const total = filtered.length;
     let pos = 0,
         neg = 0,
@@ -141,24 +145,19 @@ function Homepage() {
         else neu++;
     });
 
-    /* --- TRENDS DATA --- */
+    // ---------- Trend data ----------
     const trendData = useMemo(() => {
         const counter = {};
-
         filtered.forEach((r) => {
             const d = pickDate(r);
             if (!d) return;
             if (!counter[d]) counter[d] = 0;
             counter[d]++;
         });
-
-        return Object.entries(counter).map(([date, count]) => ({
-            date,
-            count,
-        }));
+        return Object.entries(counter).map(([date, count]) => ({ date, count }));
     }, [filtered]);
 
-    /* --- EXPORT EXCEL --- */
+    // ---------- Export Excel ----------
     const exportExcel = () => {
         const flat = filtered.map((r) => ({
             ID: r.id,
@@ -167,9 +166,7 @@ function Homepage() {
             Sentiment: normSent(r.sentimentLabel),
             Source: r.source,
             Date: pickDate(r),
-            Link: r.tweetId
-                ? `https://x.com/i/web/status/${r.tweetId}`
-                : "-",
+            Link: r.tweetId ? `https://x.com/i/web/status/${r.tweetId}` : "-",
         }));
 
         const ws = XLSX.utils.json_to_sheet(flat);
@@ -189,7 +186,6 @@ function Homepage() {
         );
     };
 
-    /* --- TABLE DATA --- */
     const mappedSentiment = filtered.map((r) => ({
         id: r.id,
         topics: r.text,
@@ -197,9 +193,7 @@ function Homepage() {
         sentiment: normSent(r.sentimentLabel),
         source: r.source,
         date: pickDate(r),
-        url: r.tweetId
-            ? `https://x.com/i/web/status/${r.tweetId}`
-            : "-",
+        url: r.tweetId ? `https://x.com/i/web/status/${r.tweetId}` : "-",
     }));
 
     const resetFilters = () => {
@@ -210,10 +204,10 @@ function Homepage() {
         setTo("");
     };
 
-    /* --- UI --- */
+    /* ================== RENDER UI ================== */
     return (
         <div className="homepage-container">
-            {/* Sidebar */}
+            {/* ===== Sidebar ===== */}
             <div className="sidebar">
                 <div className="logo-container">
                     <img
@@ -238,22 +232,26 @@ function Homepage() {
                     <Link to="/settings" className="nav-item">
                         <span>Settings</span>
                     </Link>
+                    <Link to="/trends2" className="nav-item">
+                        <span>Keywords</span>
+                    </Link>
                 </nav>
             </div>
 
-            {/* Main */}
+            {/* ===== Main Content ===== */}
             <div className="main-content">
                 <header className="main-header">
                     <div className="header-left">
                         <h1>Mentions & Sentiment</h1>
-                        <div>ผลลัพธ์ทั้งหมด <b>{total}</b> รายการ</div>
+                        <div>
+                            ผลลัพธ์ทั้งหมด <b>{total}</b> รายการ
+                        </div>
                     </div>
 
                     <div className="header-right">
                         <button className="btn ghost" onClick={resetFilters}>
                             รีเซ็ตตัวกรอง
                         </button>
-
                         <button className="btn primary" onClick={exportExcel}>
                             Export Excel
                         </button>
@@ -277,38 +275,33 @@ function Homepage() {
                     />
                 </div>
 
-                {/* KPI */}
                 <section className="kpi-grid">
                     <div className="kpi-card pos">
                         <div className="kpi-title">Positive</div>
                         <div className="kpi-value">{pos}</div>
                     </div>
-
                     <div className="kpi-card neu">
                         <div className="kpi-title">Neutral</div>
                         <div className="kpi-value">{neu}</div>
                     </div>
-
                     <div className="kpi-card neg">
                         <div className="kpi-title">Negative</div>
                         <div className="kpi-value">{neg}</div>
                     </div>
                 </section>
 
-                {/* Widgets */}
                 <main className="homepage-widgets">
-                <SentimentOverview
-                    data={[
-                        { name: "Positive", value: pos },
-                        { name: "Neutral", value: neu },
-                        { name: "Negative", value: neg }
-                    ]}
+                    <SentimentOverview
+                        data={[
+                            { name: "Positive", value: pos },
+                            { name: "Neutral", value: neu },
+                            { name: "Negative", value: neg },
+                        ]}
                     />
                     <MentionsTrend data={trendData} />
                     <MetricsRow total={total} />
                 </main>
 
-                {/* Table */}
                 <section className="card">
                     <h3>รายการโพสต์ตาม Sentiment ({total})</h3>
 
@@ -350,7 +343,9 @@ function Homepage() {
 
                                     <div>
                                         {m.url !== "-" ? (
-                                            <a href={m.url} target="_blank">เปิดลิงก์</a>
+                                            <a href={m.url} target="_blank" rel="noreferrer">
+                                                เปิดลิงก์
+                                            </a>
                                         ) : (
                                             "-"
                                         )}
