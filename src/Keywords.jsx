@@ -1,48 +1,112 @@
 // src/Keywords.jsx
-import React, { useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import "./Trends.css";
 import { Link } from "react-router-dom";
 
-const API_BASE = "http://localhost:8082";
+// ใช้ API_BASE + ฟังก์ชันจาก services/api
+import {
+    API_BASE,
+    getCustomKeywords,
+    createCustomKeyword,
+} from "./services/api";
 
 /**
  * หน้า Keywords
- * - ส่วนบน: ฟีเจอร์ดึงโพสต์จาก Pantip แบบทดลอง (preview ก่อนบันทึก)
- * - ส่วนล่าง: ฟอร์มเพิ่ม keyword + ตาราง keyword (ตอนนี้ยังไม่ผูก backend)
+ * - ด้านบน: ดึงโพสต์จาก Pantip แบบทดลอง (preview ก่อนบันทึก)
+ * - ด้านล่าง: จัดการ custom keyword (เพิ่ม / ลบ / ค้นหา)
  */
 export default function Keyword() {
     /* --------------------------------------------------
-     * 1) STATE สำหรับตาราง / search ด้านล่าง
+     * 1) STATE สำหรับฝั่ง keyword
      * -------------------------------------------------- */
     const [q, setQ] = useState(""); // คำค้นในช่อง search
-    const [trending] = useState([]); // data ในตาราง (ตอนนี้ยังว่าง ไว้ต่อ API ทีหลัง)
 
-    /* --------------------------------------------------
-     * 2) ฟอร์มเพิ่ม custom keyword (ฝั่ง front เท่านั้น)
-     * -------------------------------------------------- */
     const [word, setWord] = useState("");
     const [label, setLabel] = useState("positive");
     const [customKeywords, setCustomKeywords] = useState([]);
+    const [savingKeyword, setSavingKeyword] = useState(false);
 
-    const addKeyword = () => {
+    // โหลด keyword ทั้งหมดจาก DB ตอนเปิดหน้า
+    useEffect(() => {
+        getCustomKeywords()
+            .then((data) => {
+                // data = [{id, keyword, sentiment}, ...]
+                setCustomKeywords(
+                    data.map((item) => ({
+                        id: item.id,
+                        word: item.keyword,
+                        label: item.sentiment,
+                    }))
+                );
+            })
+            .catch((err) => {
+                console.error("โหลด custom keywords ไม่สำเร็จ:", err);
+            });
+    }, []);
+
+    // list ที่ผ่านการ search แล้ว
+    const filteredKeywords = useMemo(() => {
+        const needle = q.toLowerCase().trim();
+        if (!needle) return customKeywords;
+        return customKeywords.filter((k) =>
+            k.word.toLowerCase().includes(needle)
+        );
+    }, [q, customKeywords]);
+
+    // เพิ่ม keyword ลง DB + อัปเดต state
+    const addKeyword = async () => {
         const clean = word.trim();
         if (!clean) return;
 
-        const item = {
-            id: Date.now(),
-            word: clean,
-            label,
-        };
+        try {
+            setSavingKeyword(true);
 
-        setCustomKeywords((prev) => [...prev, item]);
-        setWord("");
-        setLabel("positive");
+            const saved = await createCustomKeyword({
+                keyword: clean, // ให้ตรงกับ field ใน entity
+                sentiment: label,
+            }); // saved = {id, keyword, sentiment}
 
-        console.log("เพิ่มคำใหม่สำหรับ sentiment:", item);
+            setCustomKeywords((prev) => [
+                ...prev,
+                {
+                    id: saved.id,
+                    word: saved.keyword,
+                    label: saved.sentiment,
+                },
+            ]);
+
+            setWord("");
+            setLabel("positive");
+
+            console.log("เพิ่มคำใหม่ (บันทึกลง DB แล้ว):", saved);
+        } catch (err) {
+            console.error("บันทึก custom keyword ไม่สำเร็จ:", err);
+            alert("บันทึกคำไม่สำเร็จ กรุณาลองใหม่");
+        } finally {
+            setSavingKeyword(false);
+        }
+    };
+
+    // ลบ keyword ออกจาก DB + อัปเดต state
+    const handleDeleteKeyword = async (id) => {
+        const ok = window.confirm("ต้องการลบคำนี้จริง ๆ หรือไม่?");
+        if (!ok) return;
+
+        try {
+            await fetch(`${API_BASE}/api/custom-keywords/${id}`, {
+                method: "DELETE",
+            });
+
+            // ลบออกจาก state ฝั่งหน้าเว็บ
+            setCustomKeywords((prev) => prev.filter((k) => k.id !== id));
+        } catch (err) {
+            console.error("Delete keyword error", err);
+            alert("ลบคำไม่สำเร็จ ลองใหม่อีกครั้ง");
+        }
     };
 
     /* --------------------------------------------------
-     * 3) ฟีเจอร์ Pantip (โหมดทดลอง)
+     * 2) ฟีเจอร์ Pantip (โหมดทดลอง)
      * -------------------------------------------------- */
     const [pantipKeyword, setPantipKeyword] = useState("");
     const [tempPantipPosts, setTempPantipPosts] = useState([]); // รายการโพสต์ที่ดึงมา
@@ -99,9 +163,12 @@ export default function Keyword() {
             const saveData = await resSave.json();
 
             // 2) ให้ ONNX วิเคราะห์เฉพาะ Pantip แล้วบันทึกลง social_analysis
-            const resAnalyze = await fetch(`${API_BASE}/api/analysis/batch/pantip`, {
-                method: "POST",
-            });
+            const resAnalyze = await fetch(
+                `${API_BASE}/api/analysis/batch/pantip`,
+                {
+                    method: "POST",
+                }
+            );
             if (!resAnalyze.ok) {
                 throw new Error("วิเคราะห์ไม่สำเร็จ: " + resAnalyze.status);
             }
@@ -145,19 +212,7 @@ export default function Keyword() {
     }
 
     /* --------------------------------------------------
-     * 4) filter สำหรับตารางด้านล่าง (ตอนนี้ยังไม่มี data จริง)
-     * -------------------------------------------------- */
-    const filteredTrending = useMemo(() => {
-        const needle = q.toLowerCase().trim();
-        if (!needle) return trending;
-
-        return trending.filter((p) =>
-            (p.title || "").toLowerCase().includes(needle)
-        );
-    }, [q, trending]);
-
-    /* --------------------------------------------------
-     * 5) UI หลัก
+     * 3) UI หลัก
      * -------------------------------------------------- */
     return (
         <div className="trends-layout">
@@ -183,9 +238,6 @@ export default function Keyword() {
                     <Link to="/trends" className="nav-item">
                         <span>Trends</span>
                     </Link>
-                    <Link to="/settings" className="nav-item">
-                        <span>Settings</span>
-                    </Link>
                     <Link to="/trends2" className="nav-item active">
                         <span>Keywords</span>
                     </Link>
@@ -200,7 +252,7 @@ export default function Keyword() {
                     {/* ====== (1) ฟีเจอร์ Pantip (โหมดทดลอง) ====== */}
                     <section className="card" style={{ marginBottom: "20px" }}>
                         <h3 className="widget-title" style={{ marginBottom: "10px" }}>
-                            ดึงข้อมูลจาก Pantip (โหมดทดลอง)
+                            ดึงข้อมูลจาก Pantip
                         </h3>
 
                         {/* แถว input + ปุ่ม “ค้นหา Pantip” */}
@@ -353,85 +405,94 @@ export default function Keyword() {
                         )}
                     </section>
 
-                    {/* ====== (2) ตาราง Keywords + ฟอร์มเพิ่มคำ ====== */}
-                    <section className="card">
-                        <div className="card-head">
-                            <h3 className="widget-title">Trending Posts</h3>
-
-                            <input
-                                className="search"
-                                placeholder="🔍 ค้นหา keyword"
-                                value={q}
-                                onChange={(e) => setQ(e.target.value)}
-                            />
-
-                            <div className="custom-add-box">
-                                <input
-                                    value={word}
-                                    onChange={(e) => setWord(e.target.value)}
-                                    placeholder="เพิ่มคำเพื่อใช้ในการประมวลผล Sentiment"
-                                />
-
-                                <select
-                                    value={label}
-                                    onChange={(e) => setLabel(e.target.value)}
-                                >
-                                    <option value="positive">positive</option>
-                                    <option value="neutral">neutral</option>
-                                    <option value="negative">negative</option>
-                                </select>
-
-                                <button type="button" onClick={addKeyword}>
-                                    เพิ่มคำ
-                                </button>
+                    {/* ====== (2) ส่วนจัดการ Keywords ====== */}
+                    <section className="card keyword-card">
+                        {/* หัวการ์ด */}
+                        <div className="keyword-header">
+                            <div>
+                                <h3 className="widget-title">Custom Keywords</h3>
+                                <p className="keyword-subtitle">
+                                </p>
                             </div>
 
-                            {customKeywords.length > 0 && (
-                                <div className="custom-keyword-list">
-                                    <span>คำที่เพิ่มแล้ว:</span>
-                                    <ul>
-                                        {customKeywords.map((k) => (
-                                            <li key={k.id}>
-                                                <strong>{k.word}</strong> — {k.label}
-                                            </li>
-                                        ))}
-                                    </ul>
-                                </div>
-                            )}
+                            <div className="keyword-search-wrap">
+                                <input
+                                    className="keyword-search"
+                                    placeholder="🔍 ค้นหาคำที่สร้างไว้"
+                                    value={q}
+                                    onChange={(e) => setQ(e.target.value)}
+                                />
+                            </div>
                         </div>
 
-                        <div className="table">
-                            <div className="t-head">
-                                <div>id</div>
-                                <div>Keyword</div>
-                                <div>Sentiment</div>
-                                <div>Phrase</div>
-                            </div>
+                        {/* ฟอร์มเพิ่มคำ */}
+                        <div className="keyword-add-row">
+                            <input
+                                className="keyword-input"
+                                value={word}
+                                onChange={(e) => setWord(e.target.value)}
+                                placeholder="พิมพ์คำที่ต้องการเพิ่ม เช่น เบื่อ, ดีย์, ชอบมาก"
+                            />
 
-                            {filteredTrending.map((p) => (
-                                <div className="t-row" key={p.id}>
-                                    <div className="title-cell">{p.title}</div>
-                                    <div>{p.date || "-"}</div>
-                                    <div>{p.source}</div>
-                                    <div>
-                                        {p.url && p.url !== "#" ? (
-                                            <a
-                                                className="link"
-                                                href={p.url}
-                                                target="_blank"
-                                                rel="noreferrer"
-                                            >
-                                                เปิดลิงก์
-                                            </a>
-                                        ) : (
-                                            "-"
-                                        )}
-                                    </div>
+                            <select
+                                className="keyword-select"
+                                value={label}
+                                onChange={(e) => setLabel(e.target.value)}
+                            >
+                                <option value="positive">positive</option>
+                                <option value="neutral">neutral</option>
+                                <option value="negative">negative</option>
+                            </select>
+
+                            <button
+                                type="button"
+                                className="keyword-add-btn"
+                                onClick={addKeyword}
+                                disabled={savingKeyword}
+                            >
+                                {savingKeyword ? "กำลังเพิ่ม..." : "เพิ่มคำ"}
+                            </button>
+                        </div>
+
+                        {/* ตารางคำทั้งหมด */}
+                        <div className="keyword-table-wrap">
+                            {filteredKeywords.length === 0 ? (
+                                <div className="keyword-empty">
+                                    ยังไม่มีคำที่เพิ่มไว้ ลองเพิ่มคำใหม่ด้านบน
                                 </div>
-                            ))}
-
-                            {filteredTrending.length === 0 && (
-                                <div className="empty-row">ไม่พบรายการ</div>
+                            ) : (
+                                <table className="keyword-table">
+                                    <thead>
+                                    <tr>
+                                        <th style={{ width: "70px" }}>ID</th>
+                                        <th>Keyword</th>
+                                        <th style={{ width: "120px" }}>Sentiment</th>
+                                        <th style={{ width: "90px" }}>จัดการ</th>
+                                    </tr>
+                                    </thead>
+                                    <tbody>
+                                    {filteredKeywords.map((k) => (
+                                        <tr key={k.id}>
+                                            <td>{k.id}</td>
+                                            <td>{k.word}</td>
+                                            <td>
+                          <span className={`sentiment-pill ${k.label}`}>
+                            {k.label}
+                          </span>
+                                            </td>
+                                            <td>
+                                                <button
+                                                    type="button"
+                                                    className="keyword-delete-btn"
+                                                    onClick={() => handleDeleteKeyword(k.id)}
+                                                >
+                                                    ลบ
+                                                </button>
+                                            </td>
+                                        </tr>
+                                    ))}
+                                    </tbody>
+                                </table>
                             )}
                         </div>
                     </section>

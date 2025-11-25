@@ -9,25 +9,47 @@ function Pageone({ onLogin }) {
   const [error, setError] = useState("");
   const navigate = useNavigate();
 
+  // ใช้ host ปัจจุบันแทน localhost (สำคัญมาก)
+  const API_HOST = window.location.hostname;
+  const LOGIN_URL = `http://${API_HOST}:8082/login`; // ถ้า backend เปลี่ยนเป็น /api/login1 ให้แก้ตรงนี้
+
   const handleSubmit = async (e) => {
     e.preventDefault();
+    setError("");
 
     try {
-      const response = await axios.post("http://localhost:8082/login", {
-        username,
-        password,
-      });
+      const response = await axios.post(
+          LOGIN_URL,
+          { username, password },
+          {
+            // ถ้า backend มี session/cookie ค่อยเปิดตัวนี้
+            // withCredentials: true,
+          }
+      );
 
       console.log("Login Response:", response.data);
 
-      if (response.data === "Login Success") {
-        onLogin();
+      const data = response.data;
+
+      // รองรับทั้งแบบส่ง String ตรง ๆ และแบบ JSON
+      const isSuccess =
+          data === "Login Success" ||
+          (typeof data === "object" && data.status === "ok");
+
+      if (isSuccess) {
+        if (typeof onLogin === "function") {
+          onLogin();
+        }
         navigate("/mentions");
       } else {
-        setError(response.data || "Invalid username or password");
+        setError(
+            (typeof data === "object" && data.message) ||
+            data ||
+            "Invalid username or password"
+        );
       }
     } catch (err) {
-      console.error(err);
+      console.error("Login error:", err);
       setError("Server error");
     }
   };

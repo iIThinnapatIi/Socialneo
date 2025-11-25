@@ -3,9 +3,12 @@ import React, { useMemo } from "react";
 import { Link } from "react-router-dom";
 import "./Dashboard.css";
 import { useFetch } from "./hooks/useFetch";
-import { getTweetAnalysis, getTweetDates } from "./services/api";
+import {
+    getTweetAnalysis,
+    getTweetDates,
+    getAnalysisSummary,
+} from "./services/api";
 
-// Recharts
 import {
     ResponsiveContainer,
     LineChart,
@@ -28,97 +31,143 @@ const COLORS = {
     gray: "#94A3B8",
 };
 
+// สีสวยสำหรับกราฟคณะ TOP
+const FACULTY_COLORS = [
+    "#3B82F6", // ฟ้า
+    "#22C55E", // เขียว
+    "#F97316", // ส้ม
+    "#E11D48", // ชมพูแดง
+    "#6366F1", // ม่วงฟ้า
+    "#0EA5E9", // ฟ้าน้ำทะเล
+];
+
 /* ---------- Badge ---------- */
 function SentimentBadge({ label }) {
     const lbl = (label || "").toLowerCase();
     const norm =
-        lbl === "pos" || lbl === "positive"
+        lbl === "positive"
             ? "positive"
-            : lbl === "neg" || lbl === "negative"
-            ? "negative"
-            : "neutral";
+            : lbl === "negative"
+                ? "negative"
+                : "neutral";
     return <span className={`pill pill-${norm}`}>{norm}</span>;
 }
 
-/* ---------- Helpers ---------- */
 const clip = (s, n = 60) =>
     s && s.length > n ? s.slice(0, n) + "…" : s || "-";
 
-/* ===================================================== */
 export default function Dashboard() {
-    /* Fetch data */
-    const { data, loading, err } = useFetch(() => getTweetAnalysis(), []);
+    const { data, loading} = useFetch(() => getTweetAnalysis(), []);
     const rows = data || [];
 
-    const {
-        data: tweetDates,
-        loading: loadingDates,
-        err: errDates,
-    } = useFetch(() => getTweetDates(), []);
+    const { data: tweetDates } = useFetch(() => getTweetDates(), []);
+    const { data: summary } = useFetch(() => getAnalysisSummary(), []);
 
-    /* ---------- Normalize rows ---------- */
+    // Normalize
     const normRows = useMemo(() => {
         return rows.map((r, idx) => ({
             tweetId: r.tweetId || r.id || String(idx),
             title: clip(r.text || "-", 80),
-            faculty: r.faculty || "UNKNOWN",
+            faculty: r.faculty || "ไม่ระบุ",
             sentiment:
                 r.sentimentLabel?.toLowerCase() === "positive"
                     ? "positive"
                     : r.sentimentLabel?.toLowerCase() === "negative"
-                    ? "negative"
-                    : "neutral",
+                        ? "negative"
+                        : "neutral",
             date: (r.analyzedAt || r.createdAt || "").slice(0, 10),
             source: r.source || "X",
             url: r.tweetId ? `https://x.com/i/web/status/${r.tweetId}` : "-",
         }));
     }, [rows]);
 
-    /* ---------- Calculation ---------- */
-    const { totals, topFaculties, latestItems, sentShare } = useMemo(() => {
-        let pos = 0,
-            neu = 0,
-            neg = 0;
+    // Local fallback
+    const { totalsLocal, topFacultiesLocal, latestItems, sentShareLocal } =
+        useMemo(() => {
+            let pos = 0,
+                neu = 0,
+                neg = 0;
 
-        const facCount = new Map();
+            const facCount = new Map();
 
-        for (const m of normRows) {
-            if (m.sentiment === "positive") pos++;
-            else if (m.sentiment === "negative") neg++;
-            else neu++;
+            for (const m of normRows) {
+                if (m.sentiment === "positive") pos++;
+                else if (m.sentiment === "negative") neg++;
+                else neu++;
 
-            facCount.set(m.faculty, (facCount.get(m.faculty) || 0) + 1);
-        }
+                facCount.set(m.faculty, (facCount.get(m.faculty) || 0) + 1);
+            }
 
-        const topFaculties = Array.from(facCount.entries())
-            .filter(([name]) => name !== "มหาวิทยาลัยโดยรวม")
-            .map(([name, count]) => ({ name, count }))
-            .sort((a, b) => b.count - a.count);
+            const topFaculties = Array.from(facCount.entries())
+                .map(([name, count]) => ({ name, count }))
+                .sort((a, b) => b.count - a.count);
 
-        const latestItems = [...normRows]
-            .filter((m) => ["positive", "negative"].includes(m.sentiment))
-            .sort((a, b) => b.date.localeCompare(a.date))
-            .slice(0, 5);
+            const latestItems = [...normRows]
+                .filter((m) => ["positive", "negative"].includes(m.sentiment))
+                .sort((a, b) => b.date.localeCompare(a.date))
+                .slice(0, 5);
 
-        return {
-            totals: {
-                mentions: normRows.length,
-                positive: pos,
-                neutral: neu,
-                negative: neg,
+            return {
+                totalsLocal: {
+                    mentions: normRows.length,
+                    positive: pos,
+                    neutral: neu,
+                    negative: neg,
+                },
+                topFacultiesLocal: topFaculties,
+                latestItems,
+                sentShareLocal: [
+                    { name: "Positive", value: pos, color: COLORS.green },
+                    { name: "Neutral", value: neu, color: COLORS.gray },
+                    { name: "Negative", value: neg, color: COLORS.red },
+                ],
+            };
+        }, [normRows]);
+
+    // Use backend summary first
+    const totals = summary?.totals || totalsLocal;
+
+    const sentShare = summary?.sentiment
+        ? [
+            {
+                name: "Positive",
+                value:
+                    summary.sentiment.find((s) => s.label === "Positive")
+                        ?.value ?? 0,
+                color: COLORS.green,
             },
-            topFaculties,
-            latestItems,
-            sentShare: [
-                { name: "Positive", value: pos, color: COLORS.green },
-                { name: "Neutral", value: neu, color: COLORS.gray },
-                { name: "Negative", value: neg, color: COLORS.red },
-            ],
-        };
-    }, [normRows]);
+            {
+                name: "Neutral",
+                value:
+                    summary.sentiment.find((s) => s.label === "Neutral")
+                        ?.value ?? 0,
+                color: COLORS.gray,
+            },
+            {
+                name: "Negative",
+                value:
+                    summary.sentiment.find((s) => s.label === "Negative")
+                        ?.value ?? 0,
+                color: COLORS.red,
+            },
+        ]
+        : sentShareLocal;
 
-    /* ---------- Trend Data ---------- */
+    const topFaculties =
+        summary?.topFaculties?.length > 0
+            ? summary.topFaculties
+            : topFacultiesLocal;
+
+    // ใช้กับกราฟ (เรียงใหม่)
+    const facultyChartData = useMemo(
+        () => [...topFaculties].reverse(),
+        [topFaculties]
+    );
+
+    // Trend
     const trendData = useMemo(() => {
+        if (summary?.trend) return summary.trend;
+
         if (!Array.isArray(tweetDates)) return [];
         const map = new Map();
 
@@ -131,9 +180,8 @@ export default function Dashboard() {
             date,
             count,
         }));
-    }, [tweetDates]);
+    }, [summary, tweetDates]);
 
-    /* ===================================================== */
     return (
         <div className="dashboard-container">
             {/* Sidebar */}
@@ -150,23 +198,16 @@ export default function Dashboard() {
 
                 <nav className="nav-menu">
                     <Link to="/dashboard" className="nav-item active">
-                        <i className="far fa-chart-line"></i>
-                        <span>Dashboard</span>
+                        Dashboard
                     </Link>
                     <Link to="/mentions" className="nav-item">
-                        <i className="fas fa-comment-dots"></i>
-                        <span>Mentions</span>
+                        Mentions
                     </Link>
                     <Link to="/trends" className="nav-item">
-                        <i className="fas fa-stream"></i>
-                        <span>Trends</span>
-                    </Link>
-                    <Link to="/settings" className="nav-item">
-                        <i className="fas fa-cog"></i>
-                        <span>Settings</span>
+                        Trends
                     </Link>
                     <Link to="/trends2" className="nav-item">
-                        <span>Keywords</span>
+                        Keywords
                     </Link>
                 </nav>
             </div>
@@ -177,14 +218,8 @@ export default function Dashboard() {
                     <h1 className="header-title">Dashboard</h1>
                 </header>
 
-                {err && (
-                    <div className="widget-card error-card">
-                        โหลดข้อมูลไม่สำเร็จ: {String(err)}
-                    </div>
-                )}
-
                 <main className="widgets-grid">
-                    {/* -------- Row 1 (Total + Sentiment) -------- */}
+                    {/* Total + Sentiment */}
                     <div className="widget-metrics">
                         <div className="metric-card">
                             <div className="metric-title">Total Mentions</div>
@@ -192,7 +227,8 @@ export default function Dashboard() {
                                 {loading ? "…" : totals.mentions}
                             </div>
                             <div className="metric-sub">
-                                POS {totals.positive} · NEU {totals.neutral} · NEG {totals.negative}
+                                POS {totals.positive} · NEU {totals.neutral} ·
+                                NEG {totals.negative}
                             </div>
                         </div>
 
@@ -204,7 +240,6 @@ export default function Dashboard() {
                                     <Pie
                                         data={sentShare}
                                         dataKey="value"
-                                        nameKey="name"
                                         innerRadius={40}
                                         outerRadius={60}
                                     >
@@ -214,54 +249,98 @@ export default function Dashboard() {
                                     </Pie>
                                 </PieChart>
                             </ResponsiveContainer>
-
-                            <div className="legend-inline">
-                                <span className="dot" style={{ background: COLORS.green }} /> POS
-                                <span className="dot" style={{ background: COLORS.gray }} /> NEU
-                                <span className="dot" style={{ background: COLORS.red }} /> NEG
-                            </div>
                         </div>
                     </div>
 
-                    {/* -------- Row 2 (Trend + Faculties) -------- */}
+                    {/* Trend */}
                     <div className="widget-card widget-trend">
                         <h3 className="widget-title">Mentions Trend</h3>
-
-                        <div style={{ width: "100%", height: 250 }}>
-                            <ResponsiveContainer>
-                                <LineChart data={trendData}>
-                                    <CartesianGrid strokeDasharray="3 3" />
-                                    <XAxis dataKey="date" />
-                                    <YAxis allowDecimals={false} />
-                                    <Tooltip />
-                                    <Line type="monotone" dataKey="count" stroke="#2563eb" dot />
-                                </LineChart>
-                            </ResponsiveContainer>
-                        </div>
+                        <ResponsiveContainer width="100%" height={250}>
+                            <LineChart data={trendData}>
+                                <CartesianGrid strokeDasharray="3 3" />
+                                <XAxis dataKey="date" />
+                                <YAxis allowDecimals={false} />
+                                <Tooltip />
+                                <Line
+                                    type="monotone"
+                                    dataKey="count"
+                                    stroke="#2563eb"
+                                    dot
+                                />
+                            </LineChart>
+                        </ResponsiveContainer>
                     </div>
 
+                    {/* Top Faculties — ใส่สีใหม่ */}
                     <div className="widget-card widget-faculty">
                         <h3 className="widget-title">Top Faculties</h3>
-                        <div style={{ width: "100%", height: topFaculties.length * 45 }}>
-                            <ResponsiveContainer>
-                                <BarChart
-                                    data={[...topFaculties].reverse()}
-                                    layout="vertical"
-                                    margin={{ top: 10, right: 20, left: 40, bottom: 10 }}
-                                >
-                                    <CartesianGrid strokeDasharray="3 3" />
-                                    <XAxis type="number" allowDecimals={false} />
-                                    <YAxis type="category" dataKey="name" width={140} />
-                                    <Tooltip />
-                                    <Bar dataKey="count" fill="#3b82f6" radius={[6, 6, 6, 6]} />
-                                </BarChart>
-                            </ResponsiveContainer>
-                        </div>
+
+                        {facultyChartData.length === 0 ? (
+                            <p
+                                style={{
+                                    marginTop: 24,
+                                    color: "#999",
+                                    textAlign: "center",
+                                }}
+                            >
+                                ยังไม่มีข้อมูลคณะ
+                            </p>
+                        ) : (
+                            <div
+                                style={{
+                                    width: "100%",
+                                    height: Math.max(
+                                        facultyChartData.length * 45,
+                                        200
+                                    ),
+                                }}
+                            >
+                                <ResponsiveContainer>
+                                    <BarChart
+                                        data={facultyChartData}
+                                        layout="vertical"
+                                        margin={{
+                                            top: 10,
+                                            right: 20,
+                                            left: 40,
+                                            bottom: 10,
+                                        }}
+                                    >
+                                        <CartesianGrid strokeDasharray="3 3" />
+                                        <XAxis type="number" />
+                                        <YAxis
+                                            type="category"
+                                            dataKey="name"
+                                            width={180}
+                                        />
+                                        <Tooltip />
+
+                                        <Bar dataKey="count" radius={[6, 6, 6, 6]}>
+                                            {facultyChartData.map(
+                                                (entry, index) => (
+                                                    <Cell
+                                                        key={`cell-${index}`}
+                                                        fill={
+                                                            FACULTY_COLORS[
+                                                            index %
+                                                            FACULTY_COLORS.length
+                                                                ]
+                                                        }
+                                                    />
+                                                )
+                                            )}
+                                        </Bar>
+                                    </BarChart>
+                                </ResponsiveContainer>
+                            </div>
+                        )}
                     </div>
 
-                    {/* -------- Row 3 (Latest Mentions) -------- */}
+                    {/* Latest */}
                     <div className="widget-card widget-latest">
-                        <h3 className="widget-title">latest 5 Positive & Negative Mentions  </h3>
+                        <h3 className="widget-title">
+                            Latest 5 Positive & Negative Mentions
+                        </h3>
 
                         <div className="table">
                             <div className="t-head">
@@ -274,12 +353,21 @@ export default function Dashboard() {
 
                             {latestItems.map((m, idx) => (
                                 <div className="t-row" key={idx}>
-                                    <div className="t-title">{clip(m.title, 50)}</div>
+                                    <div className="t-title">
+                                        {clip(m.title, 50)}
+                                    </div>
                                     <div>{m.faculty}</div>
-                                    <div><SentimentBadge label={m.sentiment} /></div>
+                                    <div>
+                                        <SentimentBadge label={m.sentiment} />
+                                    </div>
                                     <div>{m.date}</div>
                                     <div>
-                                        <a className="link" href={m.url} target="_blank" rel="noreferrer">
+                                        <a
+                                            className="link"
+                                            href={m.url}
+                                            target="_blank"
+                                            rel="noreferrer"
+                                        >
                                             เปิดลิงก์
                                         </a>
                                     </div>

@@ -107,3 +107,178 @@
     .keywords-grid { grid-template-columns: repeat(2, minmax(0,1fr)); }
     .t-head, .t-row { grid-template-columns: 1.6fr 1fr .8fr .7fr; }
 }
+
+/* ===== Keywords page styling ===== */
+
+.keyword-card {
+    margin-top: 12px;
+}
+
+.keyword-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-end;
+    gap: 16px;
+    margin-bottom: 16px;
+}
+
+.keyword-subtitle {
+    font-size: 0.85rem;
+    color: #64748b;
+    margin-top: 4px;
+}
+
+.keyword-search-wrap {
+    min-width: 220px;
+}
+
+.keyword-search {
+    width: 100%;
+    padding: 8px 12px;
+    border-radius: 999px;
+    border: 1px solid #e2e8f0;
+    font-size: 0.9rem;
+    outline: none;
+}
+
+.keyword-search:focus {
+    border-color: #2563eb;
+    box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.15);
+}
+
+/* ฟอร์มเพิ่มคำ */
+.keyword-add-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin-bottom: 14px;
+    align-items: center;
+}
+
+.keyword-input {
+    flex: 1.8;
+    min-width: 220px;
+    padding: 8px 10px;
+    border-radius: 10px;
+    border: 1px solid #e2e8f0;
+    font-size: 0.9rem;
+}
+
+.keyword-select {
+    flex: 0.6;
+    min-width: 120px;
+    padding: 8px 10px;
+    border-radius: 10px;
+    border: 1px solid #e2e8f0;
+    background: #f8fafc;
+    font-size: 0.9rem;
+}
+
+.keyword-add-btn {
+    flex: 0 0 auto;
+    padding: 8px 18px;
+    border-radius: 999px;
+    border: none;
+    background: #2563eb;
+    color: #ffffff;
+    font-weight: 600;
+    cursor: pointer;
+    font-size: 0.9rem;
+}
+
+.keyword-add-btn:disabled {
+    opacity: 0.7;
+    cursor: default;
+}
+
+/* ตารางคำ */
+.keyword-table-wrap {
+    border-radius: 16px;
+    border: 1px solid #e2e8f0;
+    background: #f8fafc;
+    overflow: hidden;
+}
+
+.keyword-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.9rem;
+}
+
+.keyword-table th,
+.keyword-table td {
+    padding: 8px 12px;
+    border-bottom: 1px solid #e2e8f0;
+}
+
+.keyword-table thead th {
+    background: #e5edff;
+    text-align: left;
+    font-weight: 600;
+    color: #1e293b;
+}
+
+.keyword-table tbody tr:nth-child(even) {
+    background: #f1f5f9;
+}
+
+.keyword-empty {
+    padding: 18px 16px;
+    font-size: 0.9rem;
+    color: #64748b;
+}
+
+/* pill สี sentiment */
+.sentiment-pill {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 2px 10px;
+    border-radius: 999px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    text-transform: capitalize;
+}
+
+.sentiment-pill.positive {
+    background: #dcfce7;
+    color: #15803d;
+}
+
+.sentiment-pill.neutral {
+    background: #e2e8f0;
+    color: #475569;
+}
+
+.sentiment-pill.negative {
+    background: #fee2e2;
+    color: #b91c1c;
+}
+
+/* ปุ่มลบ */
+.keyword-delete-btn {
+    padding: 4px 10px;
+    border-radius: 999px;
+    border: none;
+    font-size: 0.8rem;
+    background: #f97373;
+    color: #ffffff;
+    cursor: pointer;
+}
+
+.keyword-delete-btn:hover {
+    background: #ef4444;
+}
+
+/* responsive keywords card */
+@media (max-width: 768px) {
+    .keyword-header {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+
+    .keyword-search-wrap {
+        width: 100%;
+    }
+}
+

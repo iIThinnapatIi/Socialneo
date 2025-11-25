@@ -5,7 +5,6 @@ import { useState } from "react";
 import Homepage from "./Homepage";
 import Dashboard from "./Dashboard";
 import Trends from "./Trends";
-import Settings from "./Settings";
 import Pageone from "./Pageone";
 import Keyword from "./Keywords"; // ไม่จำเป็นต้องใส่ .jsx ก็ได้
 
@@ -59,15 +58,7 @@ export default function App() {
                     }
                 />
 
-                {/* Settings */}
-                <Route
-                    path="/settings"
-                    element={
-                        <RequireAuth isLoggedIn={isLoggedIn}>
-                            <Settings />
-                        </RequireAuth>
-                    }
-                />
+
 
                 {/* ✅ Keywords (trends2) – ต้องล็อกอินเหมือนกัน */}
                 <Route

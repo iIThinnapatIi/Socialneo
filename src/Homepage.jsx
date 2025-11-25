@@ -229,9 +229,6 @@ function Homepage() {
                     <Link to="/trends" className="nav-item">
                         <span>Trends</span>
                     </Link>
-                    <Link to="/settings" className="nav-item">
-                        <span>Settings</span>
-                    </Link>
                     <Link to="/trends2" className="nav-item">
                         <span>Keywords</span>
                     </Link>

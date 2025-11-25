@@ -22,7 +22,8 @@ const parseTopics = (r) => {
         try {
             const arr = JSON.parse(str);
             if (Array.isArray(arr)) return arr.map(String);
-        } catch (_) {}
+            // eslint-disable-next-line no-unused-vars
+        } catch (_) { /* empty */ }
     }
     return str
         .split(",")
@@ -203,10 +204,7 @@ export default function Trends() {
                         <i className="fas fa-stream"></i>
                         <span>Trends</span>
                     </Link>
-                    <Link to="/settings" className="nav-item">
-                        <i className="fas fa-cog"></i>
-                        <span>Settings</span>
-                    </Link>
+                    
                     <Link to="/trends2" className="nav-item">
                         <span>Keywords</span>
                     </Link>
@@ -219,7 +217,6 @@ export default function Trends() {
                     <div className="title-wrap">
                         <h1 className="page-title">Trends</h1>
                         <div className="page-sub">
-                            * ดึงจากฐานข้อมูล <b>tweet_analysis</b> ·
                             รวมทั้งหมด {totalMentions} รายการ
                         </div>
                     </div>
