@@ -35,6 +35,9 @@ const normalizeFaculty = (f = "") => {
 
     const x = f.replace(/\s+/g, "").toLowerCase();
 
+    // ✅ เคสใหม่: บุคคลทั่วไป
+    if (x.includes("บุคคลทั่วไป")) return "บุคคลทั่วไป";
+
     if (x.includes("บัญชี")) return "บัญชี";
     if (x.includes("บริการ")) return "ศูนย์บริการ";
     if (x.includes("นิเทศ")) return "นิเทศศาสตร์";
@@ -77,7 +80,11 @@ function Homepage() {
         "กยส",
         "ศูนย์บริการ",
         "มหาวิทยาลัยโดยรวม",
+        "บุคคลทั่วไป",          // ✅ ตัวเลือกใหม่
     ];
+
+    // ✅ ใช้ list นี้สำหรับ dropdown ในตาราง (ไม่เอา "ทั้งหมด")
+    const facultyOptions = faculties.filter((f) => f !== "ทั้งหมด");
 
     // ---------- ดึงข้อมูลจาก backend ----------
     const { data, loading } = useFetch(() => getTweetAnalysis(), []);
@@ -90,14 +97,12 @@ function Homepage() {
     // ---------- อัปเดต sentiment ทีละแถว ----------
     const updateSentiment = async (id, newValue) => {
         try {
-            // อัปเดตบนหน้าจอทันที (optimistic update)
             setRows((prev) =>
                 prev.map((r) =>
                     r.id === id ? { ...r, sentimentLabel: newValue } : r
                 )
             );
 
-            // ✅ ยิงไป backend ให้ตรง path: /api/analysis/sentiment/update/{id}
             await fetch(
                 `${API_BASE}${API_PREFIX}/analysis/sentiment/update/${id}`,
                 {
@@ -108,7 +113,32 @@ function Homepage() {
             );
         } catch (e) {
             console.error(e);
-            alert("อัปเดตไม่สำเร็จ");
+            alert("อัปเดต Sentiment ไม่สำเร็จ");
+        }
+    };
+
+    // ---------- ✅ อัปเดตคณะทีละแถว ----------
+    const updateFaculty = async (id, newFaculty) => {
+        try {
+            // อัปเดตบนหน้าจอก่อน
+            setRows((prev) =>
+                prev.map((r) =>
+                    r.id === id ? { ...r, faculty: newFaculty } : r
+                )
+            );
+
+            // ยิงไป backend
+            await fetch(
+                `${API_BASE}${API_PREFIX}/analysis/faculty/update/${id}`,
+                {
+                    method: "PUT",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ faculty: newFaculty }),
+                }
+            );
+        } catch (e) {
+            console.error(e);
+            alert("อัปเดตคณะไม่สำเร็จ");
         }
     };
 
@@ -320,8 +350,24 @@ function Homepage() {
                                 <div className="t-row" key={`${m.id}-${index}`}>
                                     <div>{m.id}</div>
                                     <div>{m.topics}</div>
-                                    <div>{m.faculty}</div>
 
+                                    {/* ✅ เปลี่ยน Faculty เป็น select ให้ผู้ใช้เลือกคณะเองได้ */}
+                                    <div>
+                                        <select
+                                            value={m.faculty}
+                                            onChange={(e) =>
+                                                updateFaculty(m.id, e.target.value)
+                                            }
+                                        >
+                                            {facultyOptions.map((f) => (
+                                                <option key={f} value={f}>
+                                                    {f}
+                                                </option>
+                                            ))}
+                                        </select>
+                                    </div>
+
+                                    {/* dropdown แก้ sentiment */}
                                     <div>
                                         <select
                                             value={m.sentiment}
@@ -340,7 +386,11 @@ function Homepage() {
 
                                     <div>
                                         {m.url !== "-" ? (
-                                            <a href={m.url} target="_blank" rel="noreferrer">
+                                            <a
+                                                href={m.url}
+                                                target="_blank"
+                                                rel="noreferrer"
+                                            >
                                                 เปิดลิงก์
                                             </a>
                                         ) : (

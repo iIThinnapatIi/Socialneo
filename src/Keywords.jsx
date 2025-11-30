@@ -411,7 +411,7 @@ export default function Keyword() {
                         <div className="keyword-header">
                             <div>
                                 <h3 className="widget-title">Custom Keywords</h3>
-                                <p className="keyword-subtitle">
+                                <p className="keyword-subtitle">npm
                                 </p>
                             </div>
 
