@@ -1,114 +1,585 @@
-/* โครงเดียวกับหน้าอื่น */
-.trends-layout { display:flex; min-height:100vh; width:100%; }
-.trends-layout .sidebar { flex:0 0 240px; }
-.trends-layout .main-content { flex:1; padding:24px 24px 40px; }
-.content-wrap { max-width: 1100px; margin: 0 auto; }
+/* ========== Layout พื้นฐานของหน้า Trends / Keywords ========== */
+.trends-layout {
+    display: flex;
+    min-height: 100vh;
+    width: 100%;
+}
+
+.trends-layout .sidebar {
+    flex: 0 0 240px;
+}
+
+.trends-layout .main-content {
+    flex: 1;
+    padding: 24px 24px 40px;
+}
+
+.content-wrap {
+    width: 100%;
+    max-width: 1500px; /* ขยายให้กว้างขึ้นบนจอใหญ่ */
+    margin: 0 auto;
+}
 
 /* header */
-.page-header { display:flex; align-items:center; justify-content:space-between; margin-bottom:14px; }
-.page-title { font-size:28px; font-weight:800; color:#1e3a8a; margin:0; }
-.page-sub { color:#475569; font-size:14px; }
+.page-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 14px;
+}
+
+.page-title {
+    font-size: 28px;
+    font-weight: 800;
+    color: #1e3a8a;
+    margin: 0;
+}
+
+.page-sub {
+    color: #475569;
+    font-size: 14px;
+}
 
 /* cards */
-.card { background:#fff; border-radius:16px; padding:16px; box-shadow:0 2px 8px rgba(15,23,42,.06); margin-bottom:16px; }
+.card {
+    background: #fff;
+    border-radius: 16px;
+    padding: 16px;
+    box-shadow: 0 2px 8px rgba(15, 23, 42, 0.06);
+    margin-bottom: 16px;
+}
+
 .card-head {
     display: flex;
     flex-wrap: wrap;
     align-items: center;
     gap: 12px;
 }
-.widget-title { font-size:16px; font-weight:700; color:#0f172a; margin:0; }
-.placeholder { height: 160px; display:flex; align-items:center; justify-content:center; color:#94A3B8; background:#F8FAFC; border-radius:8px; }
-.error-card { background:#fff1f2; color:#991b1b; border:1px solid #ef4444; padding:10px 12px; border-radius:10px; }
 
-/* keywords */
-.keywords-grid {
-    display:grid;
-    grid-template-columns: repeat(4, minmax(0,1fr));
-    gap:12px;
+.widget-title {
+    font-size: 16px;
+    font-weight: 700;
+    color: #0f172a;
+    margin: 0;
 }
-.kw-chip {
-    display:flex; align-items:center; justify-content:space-between;
-    border:1px solid #e2e8f0; border-radius:12px; padding:10px 12px;
-    background:#f8fafc;
-}
-.kw-word { font-weight:700; color:#0f172a; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; margin-right:8px; }
-.kw-count { font-weight:800; color:#1e3a8a; }
 
-/* table */
-.table { width:100%; }
-.t-head, .t-row {
-    display:grid;
-    grid-template-columns: 2fr 1fr .8fr .7fr;
-    gap:10px; align-items:center;
+.placeholder {
+    height: 160px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #94A3B8;
+    background: #F8FAFC;
+    border-radius: 8px;
 }
-.t-head { font-weight:700; color:#1e293b; border-bottom:2px solid #e2e8f0; padding-bottom:6px; }
-.t-row { padding:10px 0; border-bottom:1px dashed #e2e8f0; font-size:14px; }
-.title-cell { white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
-.link { color:#1d4ed8; font-weight:700; text-decoration:none; }
-.link:hover { text-decoration:underline; }
-.empty-row { padding:12px 0; color:#64748b; }
 
-/* search input */
+.placeholder.small {
+    height: 120px;
+}
+
+.error-card {
+    background: #fff1f2;
+    color: #991b1b;
+    border: 1px solid #ef4444;
+    padding: 10px 12px;
+    border-radius: 10px;
+}
+
+.hint {
+    margin-top: 8px;
+    font-size: 12px;
+    color: #94a3b8;
+}
+
+/* ========== Executive summary ========== */
+.summary-row {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 12px;
+}
+
+.summary-card {
+    border-radius: 14px;
+    border: 1px solid #e2e8f0;
+    padding: 10px 12px;
+    background: #f9fafb;
+}
+
+.summary-label {
+    font-size: 12px;
+    color: #64748b;
+    margin-bottom: 4px;
+}
+
+.summary-value {
+    font-size: 26px;
+    font-weight: 800;
+    color: #0f172a;
+}
+
+.summary-sub {
+    font-size: 12px;
+    color: #6b7280;
+    margin-top: 2px;
+}
+
+.summary-sub.tiny {
+    font-size: 11px;
+    margin-top: 4px;
+}
+
+.summary-trend {
+    margin-top: 6px;
+    font-size: 12px;
+    font-weight: 600;
+}
+
+.summary-trend.trend-up {
+    color: #16a34a;
+}
+
+.summary-trend.trend-down {
+    color: #dc2626;
+}
+
+.summary-risk {
+    font-size: 18px;
+    font-weight: 800;
+    padding: 4px 10px;
+    border-radius: 999px;
+    display: inline-block;
+    margin-top: 2px;
+}
+
+.summary-risk.risk-low {
+    background: #dcfce7;
+    color: #15803d;
+}
+
+.summary-risk.risk-mid {
+    background: #fef9c3;
+    color: #854d0e;
+}
+
+.summary-risk.risk-high {
+    background: #fee2e2;
+    color: #b91c1c;
+}
+
+.summary-sent-row {
+    display: flex;
+    gap: 6px;
+    margin: 4px 0 2px;
+}
+
+.pill {
+    padding: 2px 8px;
+    border-radius: 999px;
+    font-size: 11px;
+    font-weight: 600;
+}
+
+.pill.pos {
+    background: #dcfce7;
+    color: #15803d;
+}
+
+.pill.neu {
+    background: #e2e8f0;
+    color: #475569;
+}
+
+.pill.neg {
+    background: #fee2e2;
+    color: #b91c1c;
+}
+
+.summary-focus-label {
+    font-size: 11px;
+    color: #6b7280;
+    margin-bottom: 4px;
+}
+
+.summary-focus-main {
+    font-size: 16px;
+    font-weight: 700;
+    color: #0f172a;
+}
+
+/* ========== Filters บนหน้า Trends ========== */
+.filters-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 16px;
+    margin-bottom: 10px;
+}
+
+.filter-group {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    min-width: 160px;
+}
+
+.filter-group.grow {
+    flex: 1;
+}
+
+.filter-label {
+    font-size: 12px;
+    color: #64748b;
+}
+
+.filter-select {
+    padding: 8px 10px;
+    border-radius: 10px;
+    border: 1px solid #e2e8f0;
+    font-size: 0.9rem;
+    background: #f8fafc;
+}
+
+.filter-search-input {
+    padding: 8px 10px;
+    border-radius: 10px;
+    border: 1px solid #e2e8f0;
+    font-size: 0.9rem;
+}
+
+/* ========== Panels / layout 2 คอลัมน์ ========== */
+.two-cols {
+    display: grid;
+    grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr);
+    gap: 14px;
+    margin-top: 10px;
+}
+
+.panel {
+    background: #ffffff;
+    border-radius: 14px;
+    padding: 10px 12px 12px;
+    border: 1px solid #e5e7eb;
+}
+
+.panel-title {
+    font-size: 14px;
+    font-weight: 700;
+    color: #111827;
+}
+
+.panel-sub {
+    font-size: 11px;
+    color: #9ca3af;
+    margin-top: 2px;
+}
+
+/* ========== กราฟ Trends (เวลา) ========== */
+.trend-chart-wrap {
+    margin-top: 8px;
+}
+
+/* ========== Channel chart ========== */
+.channel-chart-wrap {
+    margin-top: 10px;
+}
+
+/* ========== Faculty overview table ========== */
+.faculty-table-wrap {
+    margin-top: 8px;
+    overflow-x: auto;
+}
+
+.faculty-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 13px;
+}
+
+.faculty-table th,
+.faculty-table td {
+    padding: 6px 10px;
+    border-bottom: 1px solid #e5e7eb;
+    text-align: left;
+}
+
+.faculty-table thead th {
+    background: #eff6ff;
+    font-weight: 600;
+    color: #111827;
+}
+
+.neg-badge {
+    display: inline-block;
+    padding: 2px 8px;
+    border-radius: 999px;
+    font-size: 11px;
+    font-weight: 600;
+}
+
+.neg-badge.low {
+    background: #dcfce7;
+    color: #15803d;
+}
+
+.neg-badge.mid {
+    background: #fef9c3;
+    color: #854d0e;
+}
+
+.neg-badge.high {
+    background: #fee2e2;
+    color: #b91c1c;
+}
+
+/* ========== Topics lists ========== */
+.topic-list {
+    margin-top: 8px;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    max-height: 220px;
+    overflow: auto;
+}
+
+.topic-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 10px;
+    padding: 6px 8px;
+    border-radius: 999px;
+    background: #f1f5f9;
+}
+
+.topic-text {
+    font-size: 13px;
+    color: #0f172a;
+}
+
+.topic-count {
+    font-size: 12px;
+    font-weight: 600;
+    color: #1d4ed8;
+}
+
+.topic-growth {
+    font-size: 12px;
+    font-weight: 600;
+    color: #b91c1c;
+}
+
+/* ========== ตารางโพสต์ ========== */
+.table {
+    width: 100%;
+}
+
+.t-head,
+.t-row {
+    display: grid;
+    grid-template-columns: 4fr 1.2fr 1.4fr 0.8fr;
+    gap: 10px;
+    align-items: flex-start;
+}
+
+.t-head {
+    font-weight: 700;
+    color: #1e293b;
+    border-bottom: 2px solid #e2e8f0;
+    padding-bottom: 6px;
+}
+
+.t-row {
+    padding: 10px 0;
+    border-bottom: 1px dashed #e2e8f0;
+    font-size: 14px;
+}
+
+.t-row.clickable {
+    cursor: pointer;
+}
+
+.title-cell {
+    white-space: normal;
+    overflow: visible;
+    text-overflow: clip;
+    line-height: 1.4;
+}
+
+.link {
+    color: #1d4ed8;
+    font-weight: 700;
+    text-decoration: none;
+}
+
+.link:hover {
+    text-decoration: underline;
+}
+
+.empty-row {
+    padding: 12px 0;
+    color: #64748b;
+}
+
+/* ========== Modal แสดงรายละเอียดโพสต์เต็ม ========== */
+.post-modal-backdrop {
+    position: fixed;
+    inset: 0;
+    background: rgba(15, 23, 42, 0.45);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 40;
+}
+
+.post-modal {
+    width: min(720px, 95%);
+    max-height: 80vh;
+    background: #ffffff;
+    border-radius: 16px;
+    padding: 16px 18px 18px;
+    box-shadow: 0 20px 40px rgba(15, 23, 42, 0.35);
+    display: flex;
+    flex-direction: column;
+}
+
+.post-modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 8px;
+}
+
+.post-modal-header h3 {
+    margin: 0;
+    font-size: 18px;
+    font-weight: 700;
+}
+
+.post-modal-close {
+    border: none;
+    background: transparent;
+    font-size: 18px;
+    cursor: pointer;
+}
+
+.post-modal-body {
+    flex: 1;
+    overflow: auto;
+    padding-top: 4px;
+}
+
+.post-meta-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+    font-size: 12px;
+    color: #64748b;
+    margin-bottom: 10px;
+}
+
+.post-text {
+    font-size: 14px;
+    line-height: 1.6;
+    color: #0f172a;
+    white-space: pre-wrap;
+    margin-bottom: 14px;
+}
+
+.post-link-row {
+    display: flex;
+    justify-content: flex-end;
+}
+
+.primary-btn {
+    padding: 8px 16px;
+    border-radius: 999px;
+    border: none;
+    background: #2563eb;
+    color: #ffffff;
+    font-size: 0.9rem;
+    font-weight: 600;
+    text-decoration: none;
+}
+
+.primary-btn:hover {
+    background: #1d4ed8;
+}
+
+/* ========== ส่วน Keywords เดิม (ยังเก็บไว้ใช้หน้าอื่น) ========== */
 .search {
-    border:1px solid #cbd5e1;
-    border-radius:10px;
-    padding:8px 10px;
-    background:#fff;
-    min-height:40px;
-    width: 260px;  /* ⭐ สำคัญ! เพื่อให้ฟอร์มเพิ่มคำไม่ถูกบีบหาย */
+    border: 1px solid #cbd5e1;
+    border-radius: 10px;
+    padding: 8px 10px;
+    background: #fff;
+    min-height: 40px;
+    width: 260px;
 }
 
-/* ⭐ ฟอร์มเพิ่มคำ */
 .custom-add-box {
     width: 100%;
     display: flex;
     gap: 10px;
     flex-wrap: wrap;
     margin-top: 10px;
-
-    background:#f8f9ff;
-    padding:12px;
-    border-radius:12px;
+    background: #f8f9ff;
+    padding: 12px;
+    border-radius: 12px;
 }
 
 .custom-add-box input {
     flex: 1;
     padding: 8px 10px;
-    border:1px solid #cbd5e1;
+    border: 1px solid #cbd5e1;
     border-radius: 10px;
 }
 
 .custom-add-box select {
-    padding:8px;
-    border-radius:10px;
-    border:1px solid #cbd5e1;
+    padding: 8px;
+    border-radius: 10px;
+    border: 1px solid #cbd5e1;
 }
 
 .custom-add-box button {
-    padding:8px 14px;
-    background:#2455f5;
-    color:white;
-    border:none;
-    border-radius:10px;
-    cursor:pointer;
+    padding: 8px 14px;
+    background: #2455f5;
+    color: white;
+    border: none;
+    border-radius: 10px;
+    cursor: pointer;
 }
 
 .custom-add-box button:hover {
-    background:#1d44c9;
+    background: #1d44c9;
 }
 
-/* responsive */
-@media (max-width: 1024px) {
-    .keywords-grid { grid-template-columns: repeat(3, minmax(0,1fr)); }
-}
-@media (max-width: 720px) {
-    .trends-layout .sidebar { flex-basis: 200px; }
-    .keywords-grid { grid-template-columns: repeat(2, minmax(0,1fr)); }
-    .t-head, .t-row { grid-template-columns: 1.6fr 1fr .8fr .7fr; }
+.keywords-grid {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 12px;
 }
 
-/* ===== Keywords page styling ===== */
+.kw-chip {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    border: 1px solid #e2e8f0;
+    border-radius: 12px;
+    padding: 10px 12px;
+    background: #f8fafc;
+}
+
+.kw-word {
+    font-weight: 700;
+    color: #0f172a;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    margin-right: 8px;
+}
+
+.kw-count {
+    font-weight: 800;
+    color: #1e3a8a;
+}
 
 .keyword-card {
     margin-top: 12px;
@@ -146,7 +617,6 @@
     box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.15);
 }
 
-/* ฟอร์มเพิ่มคำ */
 .keyword-add-row {
     display: flex;
     flex-wrap: wrap;
@@ -191,7 +661,6 @@
     cursor: default;
 }
 
-/* ตารางคำ */
 .keyword-table-wrap {
     border-radius: 16px;
     border: 1px solid #e2e8f0;
@@ -228,7 +697,6 @@
     color: #64748b;
 }
 
-/* pill สี sentiment */
 .sentiment-pill {
     display: inline-flex;
     align-items: center;
@@ -255,7 +723,6 @@
     color: #b91c1c;
 }
 
-/* ปุ่มลบ */
 .keyword-delete-btn {
     padding: 4px 10px;
     border-radius: 999px;
@@ -270,15 +737,36 @@
     background: #ef4444;
 }
 
-/* responsive keywords card */
-@media (max-width: 768px) {
-    .keyword-header {
-        flex-direction: column;
-        align-items: flex-start;
+/* ========== Responsive ========== */
+@media (max-width: 1200px) {
+    .summary-row {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
     }
 
-    .keyword-search-wrap {
-        width: 100%;
+    .two-cols {
+        grid-template-columns: minmax(0, 1fr);
     }
 }
 
+@media (max-width: 768px) {
+    .trends-layout .sidebar {
+        flex-basis: 200px;
+    }
+
+    .summary-row {
+        grid-template-columns: minmax(0, 1fr);
+    }
+
+    .filters-row {
+        flex-direction: column;
+    }
+
+    .t-head,
+    .t-row {
+        grid-template-columns: 2.5fr 1fr 1.2fr 0.8fr;
+    }
+
+    .keywords-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+}

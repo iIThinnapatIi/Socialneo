@@ -6,7 +6,8 @@ import Homepage from "./Homepage";
 import Dashboard from "./Dashboard";
 import Trends from "./Trends";
 import Pageone from "./Pageone";
-import Keyword from "./Keywords"; // ไม่จำเป็นต้องใส่ .jsx ก็ได้
+import Keyword from "./Keywords";
+import ModelEval from "./ModelEval";
 
 // ห่อ route ที่ต้องล็อกอินก่อนถึงเข้าได้
 function RequireAuth({ isLoggedIn, children }) {
@@ -58,14 +59,22 @@ export default function App() {
                     }
                 />
 
-
-
-                {/* ✅ Keywords (trends2) – ต้องล็อกอินเหมือนกัน */}
+                {/* Keywords / Trends2 */}
                 <Route
                     path="/trends2"
                     element={
                         <RequireAuth isLoggedIn={isLoggedIn}>
                             <Keyword />
+                        </RequireAuth>
+                    }
+                />
+
+                {/* Model Evaluation */}
+                <Route
+                    path="/model-eval"
+                    element={
+                        <RequireAuth isLoggedIn={isLoggedIn}>
+                            <ModelEval />
                         </RequireAuth>
                     }
                 />

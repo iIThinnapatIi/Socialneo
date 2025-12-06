@@ -1,7 +1,8 @@
 // src/services/api.js
 
 // ==================== CONFIG ====================
-const host = window.location.hostname; // ถ้าเปิดจากเครื่องอื่นจะเป็น 192.168.x.x
+// ให้ host อิงจากเครื่องที่เปิดหน้าเว็บ (จะเป็น localhost หรือ IP ภายในก็ได้)
+const host = window.location.hostname;
 export const API_BASE = `http://${host}:8082`;
 export const API_PREFIX = "/api";
 
@@ -47,28 +48,34 @@ async function http(method, path, { params, body } = {}) {
 
 const get = (path, params) => http("GET", path, { params });
 const post = (path, body) => http("POST", path, { body });
+// ⭐ helper PUT
+const put = (path, body) => http("PUT", path, { body });
+
 // Path helper → ใช้ prefix /api ให้อัตโนมัติ
 const p = (sub) => joinPath(API_PREFIX, sub);
 
 // ==================== REAL APIs ====================
 
 // ------ Dashboard / Mentions ------
+
+// GET → /api/analysis
 export function getTweetAnalysis(params = {}) {
     return get(p("/analysis"), params);
 }
 
+// GET → /api/analysis/tweet-dates
 export function getTweetDates(params = {}) {
     return get(p("/analysis/tweet-dates"), params);
 }
 
 // ---------- Dashboard Summary ----------
-// GET → http://<host>:8082/api/analysis/summary
+// GET → /api/analysis/summary
 export function getAnalysisSummary(params = {}) {
     return get(p("/analysis/summary"), params);
 }
 
-
 // ------ Alerts ------
+
 export function postScanAlerts() {
     return post(p("/alerts/scan"));
 }
@@ -78,14 +85,38 @@ export function postTestMail() {
 }
 
 // ===================================================
+// =============== Model Evaluation APIs =============
+// ===================================================
+
+// GET  /api/analysis/eval
+// ใช้ดึงสรุป accuracy / precision / recall / f1
+export function getModelEval() {
+    return get(p("/analysis/eval"));
+}
+
+// GET  /api/analysis/{id}/explain
+// ใช้ดูเหตุผลว่าโพสต์นี้ถูกจัดเป็น positive/neutral/negative เพราะอะไร
+export function getExplainById(id) {
+    return get(p(`/analysis/${id}/explain`));
+}
+
+
+// ===================================================
 // ================= Custom Keywords =================
 // ===================================================
+
+// GET → /api/custom-keywords
 export function getCustomKeywords() {
-    // GET → http://<host>:8082/api/custom-keywords
     return get(p("/custom-keywords"));
 }
 
+// POST → /api/custom-keywords
 export function createCustomKeyword(payload) {
-    // POST → http://<host>:8082/api/custom-keywords
     return post(p("/custom-keywords"), payload);
+}
+
+// ⭐ PUT → /api/custom-keywords/{id}
+// ใช้เวลาเปลี่ยน sentiment ของ keyword ในหน้า Keywords.jsx
+export function updateCustomKeyword(id, payload) {
+    return put(p(`/custom-keywords/${id}`), payload);
 }

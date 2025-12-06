@@ -262,6 +262,9 @@ function Homepage() {
                     <Link to="/trends2" className="nav-item">
                         <span>Keywords</span>
                     </Link>
+                    <Link to="/model-eval" className="nav-item">
+                        <span>Model Eval</span>
+                    </Link>
                 </nav>
             </div>
 

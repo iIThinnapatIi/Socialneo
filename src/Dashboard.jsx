@@ -201,13 +201,16 @@ export default function Dashboard() {
                         Dashboard
                     </Link>
                     <Link to="/mentions" className="nav-item">
-                        Mentions
+                        Mentionsผ
                     </Link>
                     <Link to="/trends" className="nav-item">
                         Trends
                     </Link>
                     <Link to="/trends2" className="nav-item">
                         Keywords
+                    </Link>
+                    <Link to="/model-eval" className="nav-item">
+                        <span>Model Eval</span>
                     </Link>
                 </nav>
             </div>

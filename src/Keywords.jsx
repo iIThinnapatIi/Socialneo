@@ -8,6 +8,7 @@ import {
     API_BASE,
     getCustomKeywords,
     createCustomKeyword,
+    updateCustomKeyword,   // ⭐ เพิ่มสำหรับอัปเดตคำ
 } from "./services/api";
 
 /**
@@ -64,6 +65,7 @@ export default function Keyword() {
             const saved = await createCustomKeyword({
                 keyword: clean, // ให้ตรงกับ field ใน entity
                 sentiment: label,
+                // userId: 1  // ถ้าต่อกับ user จริง ค่อยเพิ่ม field นี้ทีหลังได้
             }); // saved = {id, keyword, sentiment}
 
             setCustomKeywords((prev) => [
@@ -84,6 +86,38 @@ export default function Keyword() {
             alert("บันทึกคำไม่สำเร็จ กรุณาลองใหม่");
         } finally {
             setSavingKeyword(false);
+        }
+    };
+
+    // ⭐ ใหม่: เวลาเปลี่ยนค่า sentiment ในตาราง
+    const handleChangeSentiment = async (id, newLabel) => {
+        const target = customKeywords.find((k) => k.id === id);
+        if (!target) return;
+
+        // อัปเดตบนหน้าจอก่อน
+        setCustomKeywords((prev) =>
+            prev.map((k) =>
+                k.id === id ? { ...k, label: newLabel } : k
+            )
+        );
+
+        try {
+            await updateCustomKeyword(id, {
+                keyword: target.word,
+                sentiment: newLabel,
+                // userId: 1,
+            });
+            console.log("อัปเดต sentiment แล้ว:", id, newLabel);
+        } catch (err) {
+            console.error("อัปเดต sentiment keyword ไม่สำเร็จ:", err);
+            alert("อัปเดต sentiment ไม่สำเร็จ");
+
+            // ถ้า error ให้ revert กลับของเดิม
+            setCustomKeywords((prev) =>
+                prev.map((k) =>
+                    k.id === id ? { ...k, label: target.label } : k
+                )
+            );
         }
     };
 
@@ -150,33 +184,46 @@ export default function Keyword() {
 
     // วิเคราะห์ + บันทึกข้อมูลจาก temp ลง social_analysis ด้วย ONNX
     async function savePantipTemp() {
+        setSavingPantip(true);
         try {
-            setSavingPantip(true);
-
             // 1) บันทึกโพสต์ลง pantip_post / pantip_comment
             const resSave = await fetch(`${API_BASE}/pantip/save-temp`, {
                 method: "POST",
             });
+            const saveData = await resSave.json().catch(() => null);
+            console.log("save-temp result =", resSave.status, saveData);
+
             if (!resSave.ok) {
-                throw new Error("บันทึกไม่สำเร็จ: " + resSave.status);
+                alert("ฝั่งบันทึกโพสต์มีปัญหา (status " + resSave.status + ")");
+                return;
             }
-            const saveData = await resSave.json();
 
             // 2) ให้ ONNX วิเคราะห์เฉพาะ Pantip แล้วบันทึกลง social_analysis
             const resAnalyze = await fetch(
                 `${API_BASE}/api/analysis/batch/pantip`,
-                {
-                    method: "POST",
-                }
+                { method: "POST" }
             );
+            const analyzeData = await resAnalyze.json().catch(() => null);
+            console.log("analyze result =", resAnalyze.status, analyzeData);
+
             if (!resAnalyze.ok) {
-                throw new Error("วิเคราะห์ไม่สำเร็จ: " + resAnalyze.status);
+                alert(
+                    `บันทึกโพสต์ใหม่แล้ว ${
+                        saveData?.saved ?? 0
+                    } รายการ แต่ขั้นตอนวิเคราะห์ไม่สำเร็จ (status ${
+                        resAnalyze.status
+                    })`
+                );
+                return;
             }
-            const analyzeData = await resAnalyze.json();
 
             alert(
-                `บันทึกโพสต์ใหม่เข้าฐานข้อมูลแล้ว ${saveData.saved ?? 0} รายการ\n` +
-                `สร้างผลวิเคราะห์ Pantip ใหม่ ${analyzeData.total ?? 0} รายการ\n\n` +
+                `บันทึกโพสต์ใหม่เข้าฐานข้อมูลแล้ว ${
+                    saveData?.saved ?? 0
+                } รายการ\n` +
+                `สร้างผลวิเคราะห์ Pantip ใหม่ ${
+                    analyzeData?.total ?? 0
+                } รายการ\n\n` +
                 "โพสต์จะไปแสดงในหน้ารายงานเหมือนข้อมูลอื่น ๆ"
             );
 
@@ -240,6 +287,9 @@ export default function Keyword() {
                     </Link>
                     <Link to="/trends2" className="nav-item active">
                         <span>Keywords</span>
+                    </Link>
+                    <Link to="/model-eval" className="nav-item">
+                        <span>Model Eval</span>
                     </Link>
                 </nav>
             </aside>
@@ -324,7 +374,9 @@ export default function Keyword() {
                                             opacity: savingPantip ? 0.7 : 1,
                                         }}
                                     >
-                                        {savingPantip ? "กำลังบันทึก..." : "✔ วิเคราะห์ / บันทึก"}
+                                        {savingPantip
+                                            ? "กำลังบันทึก..."
+                                            : "✔ วิเคราะห์ / บันทึก"}
                                     </button>
 
                                     <button
@@ -379,7 +431,8 @@ export default function Keyword() {
                                                         marginBottom: "4px",
                                                     }}
                                                 >
-                                                    {p.preview || p.content?.slice(0, 100)}
+                                                    {p.preview ||
+                                                        p.content?.slice(0, 100)}
                                                     ...
                                                 </div>
 
@@ -391,7 +444,8 @@ export default function Keyword() {
                                                         style={{
                                                             fontSize: "13px",
                                                             color: "#2563eb",
-                                                            textDecoration: "underline",
+                                                            textDecoration:
+                                                                "underline",
                                                         }}
                                                     >
                                                         เปิดโพสต์ต้นฉบับบน Pantip
@@ -411,8 +465,7 @@ export default function Keyword() {
                         <div className="keyword-header">
                             <div>
                                 <h3 className="widget-title">Custom Keywords</h3>
-                                <p className="keyword-subtitle">npm
-                                </p>
+                                <p className="keyword-subtitle">npm</p>
                             </div>
 
                             <div className="keyword-search-wrap">
@@ -466,7 +519,9 @@ export default function Keyword() {
                                     <tr>
                                         <th style={{ width: "70px" }}>ID</th>
                                         <th>Keyword</th>
-                                        <th style={{ width: "120px" }}>Sentiment</th>
+                                        <th style={{ width: "160px" }}>
+                                            Sentiment
+                                        </th>
                                         <th style={{ width: "90px" }}>จัดการ</th>
                                     </tr>
                                     </thead>
@@ -475,16 +530,39 @@ export default function Keyword() {
                                         <tr key={k.id}>
                                             <td>{k.id}</td>
                                             <td>{k.word}</td>
+
+                                            {/* ⭐ dropdown สำหรับแก้ sentiment */}
                                             <td>
-                          <span className={`sentiment-pill ${k.label}`}>
-                            {k.label}
-                          </span>
+                                                <select
+                                                    value={k.label}
+                                                    onChange={(e) =>
+                                                        handleChangeSentiment(
+                                                            k.id,
+                                                            e.target.value
+                                                        )
+                                                    }
+                                                >
+                                                    <option value="positive">
+                                                        positive
+                                                    </option>
+                                                    <option value="neutral">
+                                                        neutral
+                                                    </option>
+                                                    <option value="negative">
+                                                        negative
+                                                    </option>
+                                                </select>
                                             </td>
+
                                             <td>
                                                 <button
                                                     type="button"
                                                     className="keyword-delete-btn"
-                                                    onClick={() => handleDeleteKeyword(k.id)}
+                                                    onClick={() =>
+                                                        handleDeleteKeyword(
+                                                            k.id
+                                                        )
+                                                    }
                                                 >
                                                     ลบ
                                                 </button>

@@ -351,4 +351,10 @@ body { background: var(--bg); color: var(--text); }
   border-radius: 6px;
   border: 1px solid #ccc;
 }
+/*อันนี้ด้วย*/
+.btn-small {
+    padding: 4px 10px;
+    font-size: 12px;
+}
+
 
