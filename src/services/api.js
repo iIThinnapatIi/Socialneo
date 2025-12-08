@@ -12,11 +12,12 @@ export const API_BASE = isProd
     ? "https://utccbackend.onrender.com"          // ✅ ใช้ Render ตอนออนไลน์
     : `http://${window.location.hostname}:8082`;  // ✅ ใช้ backend :8082 ตอน dev
 
-// backend ทุก route มี /api นำหน้า เช่น /api/analysis
-export const API_PREFIX = "/api";
+// ⚠ ตอนนี้ backend บน Render **ไม่มี** /api นำหน้า
+// ถ้าใส่ "/api" จะกลายเป็น /api/analysis แล้ว 404
+export const API_PREFIX = ""; // ✅ ปล่อยว่างไว้
 
-// credentials สำหรับ fetch (ให้ cookie ติดมาด้วยเวลา login)
-const CREDENTIALS = "include";
+// ❌ ไม่ใช้ cookie / credentials อีกแล้ว (ตัด CORS ง่ายขึ้น)
+// const CREDENTIALS = "include";
 
 
 // ===================================================
@@ -51,7 +52,8 @@ async function http(method, path, { params, body } = {}) {
     const res = await fetch(url, {
         method,
         headers: body ? { "Content-Type": "application/json" } : undefined,
-        credentials: CREDENTIALS,
+        // ❌ ไม่ต้องส่ง credentials แล้ว
+        // credentials: CREDENTIALS,
         body: body ? JSON.stringify(body) : undefined,
     });
 
@@ -67,7 +69,7 @@ const get = (path, params) => http("GET", path, { params });
 const post = (path, body) => http("POST", path, { body });
 const put = (path, body) => http("PUT", path, { body });
 
-// ทำให้ทุก path มี `/api` นำหน้าอัตโนมัติ
+// ทำให้ทุก path มี API_PREFIX นำหน้าอัตโนมัติ (ตอนนี้คือ "")
 const p = (sub) => joinPath(API_PREFIX, sub);
 
 

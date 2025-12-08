@@ -1,3 +1,5 @@
+// src/hooks/useFetch.js
+
 import { useEffect, useState } from "react";
 
 export function useFetch(asyncFn, deps = []) {
@@ -7,11 +9,13 @@ export function useFetch(asyncFn, deps = []) {
 
     useEffect(() => {
         let alive = true;
+
         (async () => {
             setLoading(true);
             setErr("");
+
             try {
-                const res = await asyncFn();
+                const res = await asyncFn();   // ❗ asyncFn() ต้องไม่มี credentials
                 if (alive) setData(res);
             } catch (e) {
                 if (alive) setErr(e?.message || "โหลดข้อมูลไม่สำเร็จ");
@@ -19,7 +23,10 @@ export function useFetch(asyncFn, deps = []) {
                 if (alive) setLoading(false);
             }
         })();
-        return () => { alive = false; };
+
+        return () => {
+            alive = false;
+        };
     }, deps); // eslint-disable-line
 
     return { data, loading, err };
