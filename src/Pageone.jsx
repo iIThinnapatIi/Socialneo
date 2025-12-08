@@ -3,15 +3,17 @@ import { useNavigate } from "react-router-dom";
 import "./Pageone.css";
 import axios from "axios";
 
+// 🟢 ดึง API_BASE จาก services/api (ใช้ได้ทั้ง local + Netlify)
+import { API_BASE } from "./services/api";
+
 function Pageone({ onLogin }) {
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const navigate = useNavigate();
 
-  // ใช้ host ปัจจุบันแทน localhost (สำคัญมาก)
-  const API_HOST = window.location.hostname;
-  const LOGIN_URL = `http://${API_HOST}:8082/login`; // ถ้า backend เปลี่ยนเป็น /api/login1 ให้แก้ตรงนี้
+  // 🟢 ใช้ API_BASE ที่เราตั้งจาก .env / Environment variables
+  const LOGIN_URL = `${API_BASE}/login`;
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -22,7 +24,7 @@ function Pageone({ onLogin }) {
           LOGIN_URL,
           { username, password },
           {
-            // ถ้า backend มี session/cookie ค่อยเปิดตัวนี้
+            // ถ้า backend ใช้ session/cookie ก็เปิดบรรทัดนี้ได้
             // withCredentials: true,
           }
       );
