@@ -4,10 +4,10 @@ import { useNavigate } from "react-router-dom";
 import "./Pageone.css";
 import axios from "axios";
 
-// ✅ ดึง API_BASE จาก services/api ที่หน้าอื่นใช้
+// ✅ ใช้ API_BASE เดียวกับหน้าอื่น
 import { API_BASE } from "./services/api";
 
-// ✅ ใช้ backend จริงบน Render (ผ่าน API_BASE)
+// ✅ ชี้ไปที่ backend บน Render
 const LOGIN_URL = `${API_BASE}/login`;
 
 function Pageone({ onLogin }) {
@@ -21,24 +21,23 @@ function Pageone({ onLogin }) {
     setError("");
 
     try {
-      // ✅ backend ฝั่ง Spring น่าจะรับ @RequestParam
-      //    เลยส่ง username/password เป็น query params
+      // ✅ ส่ง JSON ใน body -> แก้ปัญหา 415 (Unsupported Media Type)
       const res = await axios.post(
           LOGIN_URL,
-          null, // ไม่มี body
+          { username, password }, // body เป็น JSON
           {
-            params: { username, password },
-            // ถ้า login ใช้ session / cookie ค่อยเปิดบรรทัดนี้
+            headers: { "Content-Type": "application/json" },
+            // ถ้าอนาคตใช้ session / cookie ค่อยเปิดบรรทัดนี้
             // withCredentials: true,
           }
       );
 
       console.log("Login Response:", res.data);
 
-      // รองรับทั้งแบบส่ง String ตรง ๆ และ JSON
       const data =
           typeof res.data === "string" ? res.data.trim() : res.data;
 
+      // รองรับทั้ง response เป็น String หรือเป็น Object
       const isSuccess =
           data === "Login Success" ||
           (data && typeof data === "object" && data.status === "ok");
@@ -59,9 +58,7 @@ function Pageone({ onLogin }) {
       console.error("Login error:", err);
 
       if (err.response) {
-        setError(
-            `Server error (${err.response.status})`
-        );
+        setError(`Server error (${err.response.status})`);
       } else {
         setError("Network error");
       }
