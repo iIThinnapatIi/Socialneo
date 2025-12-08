@@ -1,20 +1,36 @@
-// src/services/api.js
+// ===================================================
+// ================ CONFIG (Smart API BASE) ===========
+// ===================================================
+//
+// ลำดับการเลือก API_BASE:
+// 1) ถ้ามี .env → ใช้ VITE_API_BASE
+// 2) ถ้าไม่มี ให้ fallback เป็น backend local :8082
+//
+// ตัวอย่าง .env
+// VITE_API_BASE=https://utccbackend.onrender.com
+// VITE_API_PREFIX=/api
+// VITE_API_CRED=include
+//
 
-// ==================== CONFIG ====================
-// ให้ host อิงจากเครื่องที่เปิดหน้าเว็บ (จะเป็น localhost หรือ IP ภายในก็ได้)
-const host = window.location.hostname;
-export const API_BASE = `http://${host}:8082`;
-export const API_PREFIX = "/api";
+export const API_BASE =
+    import.meta.env.VITE_API_BASE || `http://${window.location.hostname}:8082`;
 
-const CREDENTIALS = "same-origin";
+export const API_PREFIX = import.meta.env.VITE_API_PREFIX || "/api";
 
-// ==================== HELPERS ====================
+// credentials สำหรับ fetch
+const CREDENTIALS = import.meta.env.VITE_API_CRED || "same-origin";
+
+
+// ===================================================
+// ====================== HELPERS =====================
+// ===================================================
+
 function joinPath(...parts) {
     return (
         "/" +
         parts
             .filter(Boolean)
-            .map((p) => String(p).replace(/^\/+|\/+$/g, ""))
+            .map((p) => String(p).replace(/^\/+|\/+$/g, "")) // ตัด / หน้า-หลัง
             .join("/")
     );
 }
@@ -29,6 +45,7 @@ function toQuery(params = {}) {
     return q.toString();
 }
 
+// ---------------------- HTTP WRAPPER ----------------------
 async function http(method, path, { params, body } = {}) {
     const qs = toQuery(params);
     const url = `${API_BASE}${path}${qs ? `?${qs}` : ""}`;
@@ -48,34 +65,30 @@ async function http(method, path, { params, body } = {}) {
 
 const get = (path, params) => http("GET", path, { params });
 const post = (path, body) => http("POST", path, { body });
-// ⭐ helper PUT
 const put = (path, body) => http("PUT", path, { body });
 
-// Path helper → ใช้ prefix /api ให้อัตโนมัติ
+// ทำให้ทุก path มี `/api` นำหน้าอัตโนมัติ
 const p = (sub) => joinPath(API_PREFIX, sub);
 
-// ==================== REAL APIs ====================
 
-// ------ Dashboard / Mentions ------
+// ===================================================
+// ======================== APIs ======================
+// ===================================================
 
-// GET → /api/analysis
+// ---------------- Dashboard / Mentions ----------------
 export function getTweetAnalysis(params = {}) {
     return get(p("/analysis"), params);
 }
 
-// GET → /api/analysis/tweet-dates
 export function getTweetDates(params = {}) {
     return get(p("/analysis/tweet-dates"), params);
 }
 
-// ---------- Dashboard Summary ----------
-// GET → /api/analysis/summary
 export function getAnalysisSummary(params = {}) {
     return get(p("/analysis/summary"), params);
 }
 
-// ------ Alerts ------
-
+// ---------------- Alerts ----------------
 export function postScanAlerts() {
     return post(p("/alerts/scan"));
 }
@@ -84,39 +97,24 @@ export function postTestMail() {
     return post(p("/alerts/test"));
 }
 
-// ===================================================
-// =============== Model Evaluation APIs =============
-// ===================================================
-
-// GET  /api/analysis/eval
-// ใช้ดึงสรุป accuracy / precision / recall / f1
+// ---------------- Model Evaluation ----------------
 export function getModelEval() {
     return get(p("/analysis/eval"));
 }
 
-// GET  /api/analysis/{id}/explain
-// ใช้ดูเหตุผลว่าโพสต์นี้ถูกจัดเป็น positive/neutral/negative เพราะอะไร
 export function getExplainById(id) {
     return get(p(`/analysis/${id}/explain`));
 }
 
-
-// ===================================================
-// ================= Custom Keywords =================
-// ===================================================
-
-// GET → /api/custom-keywords
+// ---------------- Custom Keywords ----------------
 export function getCustomKeywords() {
     return get(p("/custom-keywords"));
 }
 
-// POST → /api/custom-keywords
 export function createCustomKeyword(payload) {
     return post(p("/custom-keywords"), payload);
 }
 
-// ⭐ PUT → /api/custom-keywords/{id}
-// ใช้เวลาเปลี่ยน sentiment ของ keyword ในหน้า Keywords.jsx
 export function updateCustomKeyword(id, payload) {
     return put(p(`/custom-keywords/${id}`), payload);
 }

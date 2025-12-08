@@ -201,7 +201,7 @@ export default function Dashboard() {
                         Dashboard
                     </Link>
                     <Link to="/mentions" className="nav-item">
-                        Mentionsผ
+                        Mentions
                     </Link>
                     <Link to="/trends" className="nav-item">
                         Trends
