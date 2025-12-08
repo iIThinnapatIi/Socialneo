@@ -2,23 +2,21 @@
 // ================ CONFIG (Smart API BASE) ===========
 // ===================================================
 //
-// ลำดับการเลือก API_BASE:
-// 1) ถ้ามี .env → ใช้ VITE_API_BASE
-// 2) ถ้าไม่มี ให้ fallback เป็น backend local :8082
-//
-// ตัวอย่าง .env
-// VITE_API_BASE=https://utccbackend.onrender.com
-// VITE_API_PREFIX=/api
-// VITE_API_CRED=include
+// ถ้าเป็นโหมด production (Netlify)  -> ยิงไป Render
+// ถ้าเป็นโหมด dev (npm run dev)      -> ยิงไป backend :8082 บนเครื่องเรา
 //
 
-export const API_BASE =
-    import.meta.env.VITE_API_BASE || `http://${window.location.hostname}:8082`;
+const isProd = import.meta.env.PROD;
 
-export const API_PREFIX = import.meta.env.VITE_API_PREFIX || "/api";
+export const API_BASE = isProd
+    ? "https://utccbackend.onrender.com"          // ✅ ใช้ Render ตอนออนไลน์
+    : `http://${window.location.hostname}:8082`;  // ✅ ใช้ backend :8082 ตอน dev
 
-// credentials สำหรับ fetch
-const CREDENTIALS = import.meta.env.VITE_API_CRED || "same-origin";
+// backend ทุก route มี /api นำหน้า เช่น /api/analysis
+export const API_PREFIX = "/api";
+
+// credentials สำหรับ fetch (ให้ cookie ติดมาด้วยเวลา login)
+const CREDENTIALS = "include";
 
 
 // ===================================================
@@ -57,7 +55,9 @@ async function http(method, path, { params, body } = {}) {
         body: body ? JSON.stringify(body) : undefined,
     });
 
-    if (!res.ok) throw new Error(`API Error ${res.status}`);
+    if (!res.ok) {
+        throw new Error(`API Error ${res.status}`);
+    }
 
     const ct = res.headers.get("content-type") || "";
     return ct.includes("application/json") ? await res.json() : null;
