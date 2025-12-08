@@ -21,14 +21,13 @@ function Pageone({ onLogin }) {
     setError("");
 
     try {
-      // ✅ ส่ง JSON ใน body -> แก้ปัญหา 415 (Unsupported Media Type)
+      // ✅ ส่งค่าแบบ query param ให้ตรงกับ @RequestParam ของ backend
       const res = await axios.post(
           LOGIN_URL,
-          { username, password }, // body เป็น JSON
+          null,                       // ไม่มี body
           {
-            headers: { "Content-Type": "application/json" },
-            // ถ้าอนาคตใช้ session / cookie ค่อยเปิดบรรทัดนี้
-            // withCredentials: true,
+            params: { username, password }, // ส่งเป็น query string
+            // headers: ไม่ต้องเซ็ต Content-Type เพราะไม่มี body
           }
       );
 
