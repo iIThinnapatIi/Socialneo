@@ -1,10 +1,14 @@
+// src/Pageone.jsx
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import "./Pageone.css";
 import axios from "axios";
 
-// 🟢 ดึง API_BASE จาก services/api (ใช้ได้ทั้ง local + Netlify)
+// ✅ ดึง API_BASE จาก services/api ที่หน้าอื่นใช้
 import { API_BASE } from "./services/api";
+
+// ✅ ใช้ backend จริงบน Render (ผ่าน API_BASE)
+const LOGIN_URL = `${API_BASE}/login`;
 
 function Pageone({ onLogin }) {
   const [username, setUsername] = useState("");
@@ -12,31 +16,32 @@ function Pageone({ onLogin }) {
   const [error, setError] = useState("");
   const navigate = useNavigate();
 
-  // 🟢 ใช้ API_BASE ที่เราตั้งจาก .env / Environment variables
-  const LOGIN_URL = `${API_BASE}/login`;
-
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError("");
 
     try {
-      const response = await axios.post(
+      // ✅ backend ฝั่ง Spring น่าจะรับ @RequestParam
+      //    เลยส่ง username/password เป็น query params
+      const res = await axios.post(
           LOGIN_URL,
-          { username, password },
+          null, // ไม่มี body
           {
-            // ถ้า backend ใช้ session/cookie ก็เปิดบรรทัดนี้ได้
+            params: { username, password },
+            // ถ้า login ใช้ session / cookie ค่อยเปิดบรรทัดนี้
             // withCredentials: true,
           }
       );
 
-      console.log("Login Response:", response.data);
+      console.log("Login Response:", res.data);
 
-      const data = response.data;
+      // รองรับทั้งแบบส่ง String ตรง ๆ และ JSON
+      const data =
+          typeof res.data === "string" ? res.data.trim() : res.data;
 
-      // รองรับทั้งแบบส่ง String ตรง ๆ และแบบ JSON
       const isSuccess =
           data === "Login Success" ||
-          (typeof data === "object" && data.status === "ok");
+          (data && typeof data === "object" && data.status === "ok");
 
       if (isSuccess) {
         if (typeof onLogin === "function") {
@@ -45,14 +50,21 @@ function Pageone({ onLogin }) {
         navigate("/mentions");
       } else {
         setError(
-            (typeof data === "object" && data.message) ||
+            (data && typeof data === "object" && data.message) ||
             data ||
             "Invalid username or password"
         );
       }
     } catch (err) {
       console.error("Login error:", err);
-      setError("Server error");
+
+      if (err.response) {
+        setError(
+            `Server error (${err.response.status})`
+        );
+      } else {
+        setError("Network error");
+      }
     }
   };
 
