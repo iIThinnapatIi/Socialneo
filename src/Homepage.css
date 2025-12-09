@@ -357,12 +357,74 @@ body { background: var(--bg); color: var(--text); }
     font-size: 12px;
 }
 
-/* ==================== RESPONSIVE ==================== */
+/* =========================
+   RESPONSIVE LAYOUT รวมทุกหน้า
+   ========================= */
 
-/* จอ 1024px ลงมา (แท็บเล็ต) */
-@media (max-width: 1024px) {
+/* 1) จอ 1200px ลงมา (โน้ตบุ๊ก / แท็บเล็ตแนวนอน) */
+@media (max-width: 1200px) {
+    /* ลดคอลัมน์บางส่วนให้การ์ดกว้างขึ้น */
     .widgets-grid {
+        grid-template-columns: 1fr 1fr;
+    }
+
+    .summary-row {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .kpi-grid {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+
+    .keywords-grid {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+
+    .two-cols {
+        grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr);
+    }
+
+    .content-wrap {
+        max-width: 1100px;
+    }
+}
+
+/* 2) จอ 1024px ลงมา (แท็บเล็ตส่วนใหญ่) */
+@media (max-width: 1024px) {
+    /* layout หลักทุกหน้า: sidebar ซ้อนด้านบน content */
+    .dashboard-container,
+    .homepage-container,
+    .trends-layout {
+        flex-direction: column;
+        min-height: 100vh;
+    }
+
+    .sidebar {
+        flex: 0 0 auto;
+        width: 100%;
+        padding: 20px 16px;
+    }
+
+    .main-content {
+        flex: 1;
+        width: 100%;
+        padding: 20px 16px 32px;
+    }
+
+    .content-wrap {
+        max-width: 100%;
+    }
+
+    /* การ์ดต่าง ๆ: เปลี่ยนจาก 2 คอลัมน์ → 1 คอลัมน์ */
+    .homepage-widgets,
+    .widgets-grid,
+    .two-cols {
         grid-template-columns: 1fr;
+        gap: 16px;
+    }
+
+    .summary-row {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
     }
 
     .kpi-grid {
@@ -374,24 +436,11 @@ body { background: var(--bg); color: var(--text); }
     }
 }
 
-/* จอมือถือ 768px ลงมา */
+/* 3) จอ 768px ลงมา (มือถือแนวตั้ง / แท็บเล็ตเล็ก) */
 @media (max-width: 768px) {
-
-    /* layout หลักทุกหน้า */
-    .dashboard-container,
-    .homepage-container,
-    .trends-layout {
-        flex-direction: column;        /* sidebar ไปอยู่ด้านบน */
-        min-height: 100vh;
-    }
-
-    /* ===== sidebar สีฟ้า/ม่วง ===== */
+    /* sidebar ให้เตี้ยลง + โลโก้เล็กลงหน่อย */
     .sidebar {
-        flex: 0 0 auto;
-        width: 100%;
         padding: 16px 12px;
-        max-height: 45vh;             /* สูงสุดไม่เกินครึ่งจอ */
-        overflow-y: auto;             /* ถ้าเมนูยาว ค่อยเลื่อนในส่วนนี้แทน */
     }
 
     .logo-container {
@@ -399,16 +448,15 @@ body { background: var(--bg); color: var(--text); }
         text-align: center;
     }
 
-    /* ถ้ามีโลโก้เป็นรูปภาพ */
     .sidebar img {
         max-width: 120px;
         height: auto;
         display: block;
-        margin: 0 auto 12px;
+        margin: 0 auto 8px;
     }
 
     .logo-utcc {
-        font-size: 1.8rem;            /* ย่อตัวอักษร UTCC */
+        font-size: 1.8rem;
         margin-left: 0;
     }
 
@@ -422,33 +470,106 @@ body { background: var(--bg); color: var(--text); }
         font-size: 0.95rem;
     }
 
-    /* ===== ส่วนเนื้อหาหลัก ===== */
+    /* เนื้อหาหลัก ให้เต็มจอ / padding เล็กลงหน่อย */
     .main-content {
-        flex: 1;
-        width: 100%;
-        padding: 16px;
+        padding: 16px 12px 24px;
     }
 
-    .widgets-grid,
-    .homepage-widgets {
-        grid-template-columns: 1fr;
-        gap: 16px;
+    .page-header {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 8px;
     }
 
+    .page-title,
+    .header-title {
+        font-size: 22px;
+    }
+
+    /* กริดพวก KPI / summary / keywords → 1 คอลัมน์ */
     .summary-row,
     .kpi-grid,
     .keywords-grid {
         grid-template-columns: 1fr;
     }
 
-    .filters-row {
-        flex-direction: column;
+    .homepage-widgets,
+    .widgets-grid,
+    .two-cols {
+        grid-template-columns: 1fr;
+        gap: 14px;
     }
 
-    /* ตารางโพสต์ – บีบให้เหลือคอลัมน์หลัก ๆ */
+    /* ตาราง faculty ให้เลื่อนแนวนอนได้ ถ้ากว้างเกิน */
+    .faculty-table-wrap {
+        overflow-x: auto;
+    }
+
+    .faculty-table {
+        min-width: 600px;
+    }
+
+    /* ตารางโพสต์ mentions */
+    .table {
+        font-size: 13px;
+    }
+
     .t-head,
     .t-row {
-        grid-template-columns: 2.5fr 1fr 1fr;
+        grid-template-columns: 3fr 1.2fr 1.2fr;
+        gap: 8px;
+    }
+
+    /* ปรับ card ทั่วไปให้เล็กลงหน่อย */
+    .card,
+    .widget-card,
+    .metric-card,
+    .kpi-card {
+        padding: 14px;
+        border-radius: 14px;
+    }
+
+    .kpi-card .kpi-value {
+        font-size: 26px;
     }
 }
+
+/* 4) จอเล็กมาก 480px ลงมา (มือถือจอเล็ก) */
+@media (max-width: 480px) {
+    .sidebar {
+        padding: 14px 10px;
+    }
+
+    .logo-utcc {
+        font-size: 1.6rem;
+    }
+
+    .logo-social {
+        font-size: 1.05rem;
+    }
+
+    .nav-menu .nav-item {
+        padding: 8px 10px;
+        font-size: 0.9rem;
+    }
+
+    .page-title,
+    .header-title {
+        font-size: 20px;
+    }
+
+    .kpi-card .kpi-value {
+        font-size: 24px;
+    }
+
+    .metric-value {
+        font-size: 2.1rem;
+    }
+
+    .post-modal {
+        width: 95%;
+        padding: 12px 14px 14px;
+    }
+}
+
 
