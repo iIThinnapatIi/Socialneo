@@ -8,14 +8,14 @@
 
 const isProd = import.meta.env.PROD;
 
-// BASE ของ backend (ไม่รวม path อื่น ๆ)
+// BASE ของ backend (ไม่รวม /api)
 export const API_BASE = isProd
-    ? "https://utccbackend.onrender.com"              // ✅ Render (ออนไลน์)
-    : `http://${window.location.hostname}:8082`;      // ✅ dev บนเครื่อง
+    ? "https://utccbackend.onrender.com"           // ✅ Render (ออนไลน์)
+    : `http://${window.location.hostname}:8082`;   // ✅ dev บนเครื่อง
 
-// ตอนนี้ backend **ไม่มี** /api prefix แล้ว → ปล่อยให้ว่าง
-export const API_PREFIX = "";                       // สำคัญ! ห้ามใส่ "/api"
-
+// ✅ backend ของเรามี prefix /api อยู่แล้ว (@RequestMapping("/api/analysis"))
+//    เพราะงั้นต้องใส่ "/api" ตรงนี้
+export const API_PREFIX = "/api";
 
 // ===================================================
 // ====================== HELPERS =====================
@@ -49,7 +49,8 @@ async function http(method, path, { params, body } = {}) {
     const res = await fetch(url, {
         method,
         headers: body ? { "Content-Type": "application/json" } : undefined,
-        // ❌ ไม่ใช้ credentials แล้ว จะได้ไม่ติด CORS เรื่อง cookie
+        // ตอนนี้เราไม่ได้ใช้ cookie อะไรเป็นพิเศษ สามารถไม่ใส่ credentials ก็ได้
+        // ถ้าภายหลังใช้ session/cookie ค่อยเปิดบรรทัดล่างนี้
         // credentials: "include",
         body: body ? JSON.stringify(body) : undefined,
     });
@@ -67,7 +68,7 @@ const get = (path, params) => http("GET", path, { params });
 const post = (path, body) => http("POST", path, { body });
 const put = (path, body) => http("PUT", path, { body });
 
-// ทำให้ทุก path มี API_PREFIX นำหน้าอัตโนมัติ (ตอนนี้คือ "")
+// ทำให้ทุก path มี API_PREFIX นำหน้าอัตโนมัติ เช่น "/api/analysis"
 const p = (sub) => joinPath(API_PREFIX, sub);
 
 // ===================================================
@@ -76,54 +77,54 @@ const p = (sub) => joinPath(API_PREFIX, sub);
 
 // ---------------- Dashboard / Mentions ----------------
 export function getTweetAnalysis(params = {}) {
-    // GET /analysis
+    // GET /api/analysis
     return get(p("/analysis"), params);
 }
 
 export function getTweetDates(params = {}) {
-    // GET /analysis/tweet-dates
+    // GET /api/analysis/tweet-dates
     return get(p("/analysis/tweet-dates"), params);
 }
 
 export function getAnalysisSummary(params = {}) {
-    // GET /analysis/summary
+    // GET /api/analysis/summary
     return get(p("/analysis/summary"), params);
 }
 
 // ---------------- Alerts ----------------
 export function postScanAlerts() {
-    // POST /alerts/scan
+    // POST /api/alerts/scan
     return post(p("/alerts/scan"));
 }
 
 export function postTestMail() {
-    // POST /alerts/test
+    // POST /api/alerts/test
     return post(p("/alerts/test"));
 }
 
 // ---------------- Model Evaluation ----------------
 export function getModelEval() {
-    // GET /analysis/eval
+    // GET /api/analysis/eval
     return get(p("/analysis/eval"));
 }
 
 export function getExplainById(id) {
-    // GET /analysis/{id}/explain
+    // GET /api/analysis/{id}/explain
     return get(p(`/analysis/${id}/explain`));
 }
 
 // ---------------- Custom Keywords ----------------
 export function getCustomKeywords() {
-    // GET /custom-keywords
+    // GET /api/custom-keywords
     return get(p("/custom-keywords"));
 }
 
 export function createCustomKeyword(payload) {
-    // POST /custom-keywords
+    // POST /api/custom-keywords
     return post(p("/custom-keywords"), payload);
 }
 
 export function updateCustomKeyword(id, payload) {
-    // PUT /custom-keywords/{id}
+    // PUT /api/custom-keywords/{id}
     return put(p(`/custom-keywords/${id}`), payload);
 }
