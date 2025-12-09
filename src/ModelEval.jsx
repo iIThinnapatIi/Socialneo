@@ -10,32 +10,20 @@ export default function ModelEval() {
     const [summaryError, setSummaryError] = useState("");
     const [loadingSummary, setLoadingSummary] = useState(true);
 
-    useEffect(() => {
-        async function loadSummary() {
-            try {
-                setLoadingSummary(true);
-                setSummaryError("");
+    // --------- จัดการ evaluation_samples ---------
+    const [samples, setSamples] = useState([]);
+    const [samplesError, setSamplesError] = useState("");
+    const [loadingSamples, setLoadingSamples] = useState(true);
 
-                const res = await fetch(
-                    `${API_BASE}${API_PREFIX}/analysis/eval`
-                );
-                if (!res.ok) {
-                    throw new Error(
-                        `โหลดผลประเมินโมเดลไม่สำเร็จ (status ${res.status})`
-                    );
-                }
-                const json = await res.json();
-                setSummary(json);
-            } catch (e) {
-                console.error(e);
-                setSummaryError(e.message || "เกิดข้อผิดพลาด");
-            } finally {
-                setLoadingSummary(false);
-            }
-        }
+    const [newText, setNewText] = useState("");
+    const [newLabel, setNewLabel] = useState("positive");
+    const [savingSample, setSavingSample] = useState(false);
 
-        loadSummary();
-    }, []);
+    // --------- Playground: ลองพิมพ์ข้อความให้โมเดลวิเคราะห์ ---------
+    const [testText, setTestText] = useState("");
+    const [testResult, setTestResult] = useState(null);
+    const [testError, setTestError] = useState("");
+    const [loadingTest, setLoadingTest] = useState(false);
 
     // --------- อธิบายผลของโพสต์ทีละตัว ---------
     const [idInput, setIdInput] = useState("");
@@ -43,6 +31,183 @@ export default function ModelEval() {
     const [explainError, setExplainError] = useState("");
     const [loadingExplain, setLoadingExplain] = useState(false);
 
+    // ------------------------------------------------
+    // 1) โหลด summary + samples ตอนเปิดหน้า
+    // ------------------------------------------------
+    useEffect(() => {
+        loadSummary();
+        loadSamples();
+    }, []);
+
+    async function loadSummary() {
+        try {
+            setLoadingSummary(true);
+            setSummaryError("");
+
+            const res = await fetch(
+                `${API_BASE}${API_PREFIX}/analysis/eval`
+            );
+            if (!res.ok) {
+                throw new Error(
+                    `โหลดผลประเมินโมเดลไม่สำเร็จ (status ${res.status})`
+                );
+            }
+            const json = await res.json();
+
+            if (json.status && json.status !== "ok") {
+                // กรณี backend ส่ง error style: {status:"error", message:"..."}
+                setSummary(null);
+                setSummaryError(json.message || "เกิดข้อผิดพลาดจากเซิร์ฟเวอร์");
+            } else {
+                setSummary(json);
+            }
+        } catch (e) {
+            console.error(e);
+            setSummaryError(e.message || "เกิดข้อผิดพลาด");
+            setSummary(null);
+        } finally {
+            setLoadingSummary(false);
+        }
+    }
+
+    async function loadSamples() {
+        try {
+            setLoadingSamples(true);
+            setSamplesError("");
+
+            const res = await fetch(
+                `${API_BASE}${API_PREFIX}/analysis/eval/samples`
+            );
+            if (!res.ok) {
+                throw new Error(
+                    `โหลด evaluation samples ไม่สำเร็จ (status ${res.status})`
+                );
+            }
+            const json = await res.json();
+            setSamples(Array.isArray(json) ? json : []);
+        } catch (e) {
+            console.error(e);
+            setSamplesError(e.message || "เกิดข้อผิดพลาดขณะโหลด evaluation samples");
+            setSamples([]);
+        } finally {
+            setLoadingSamples(false);
+        }
+    }
+
+    // ------------------------------------------------
+    // 2) จัดการ evaluation_samples
+    // ------------------------------------------------
+    const handleAddSample = async () => {
+        if (!newText.trim()) return;
+
+        try {
+            setSavingSample(true);
+            setSamplesError("");
+
+            const res = await fetch(
+                `${API_BASE}${API_PREFIX}/analysis/eval/samples`,
+                {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json",
+                    },
+                    body: JSON.stringify({
+                        text: newText,
+                        trueLabel: newLabel,
+                    }),
+                }
+            );
+
+            if (!res.ok) {
+                const txt = await res.text();
+                throw new Error(
+                    `เพิ่ม evaluation sample ไม่สำเร็จ (status ${res.status}) : ${txt}`
+                );
+            }
+
+            setNewText("");
+            setNewLabel("positive");
+            await loadSamples();
+            await loadSummary(); // ให้ summary อัปเดตด้วย (totalSamples / accuracy)
+        } catch (e) {
+            console.error(e);
+            setSamplesError(e.message || "เกิดข้อผิดพลาดขณะเพิ่ม sample");
+        } finally {
+            setSavingSample(false);
+        }
+    };
+
+    const handleDeleteSample = async (id) => {
+        if (!window.confirm(`ต้องการลบ sample id=${id} ใช่หรือไม่?`)) return;
+
+        try {
+            setSamplesError("");
+
+            const res = await fetch(
+                `${API_BASE}${API_PREFIX}/analysis/eval/samples/${id}`,
+                { method: "DELETE" }
+            );
+
+            if (!res.ok) {
+                const txt = await res.text();
+                throw new Error(
+                    `ลบ evaluation sample ไม่สำเร็จ (status ${res.status}) : ${txt}`
+                );
+            }
+
+            await loadSamples();
+            await loadSummary();
+        } catch (e) {
+            console.error(e);
+            setSamplesError(e.message || "เกิดข้อผิดพลาดขณะลบ sample");
+        }
+    };
+
+    // ------------------------------------------------
+    // 3) Playground: ให้โมเดลวิเคราะห์ text ที่พิมพ์เอง
+    // ------------------------------------------------
+    const handleTryEval = async () => {
+        if (!testText.trim()) return;
+
+        try {
+            setLoadingTest(true);
+            setTestError("");
+            setTestResult(null);
+
+            const res = await fetch(
+                `${API_BASE}${API_PREFIX}/analysis/eval/try`,
+                {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json",
+                    },
+                    body: JSON.stringify({
+                        text: testText,
+                    }),
+                }
+            );
+
+            if (!res.ok) {
+                const txt = await res.text();
+                throw new Error(
+                    `วิเคราะห์ข้อความไม่สำเร็จ (status ${res.status}) : ${txt}`
+                );
+            }
+
+            const json = await res.json();
+            setTestResult(json);
+        } catch (e) {
+            console.error(e);
+            setTestError(e.message || "เกิดข้อผิดพลาดขณะวิเคราะห์ข้อความ");
+            setTestResult(null);
+        } finally {
+            setLoadingTest(false);
+        }
+    };
+
+    // ------------------------------------------------
+    // 4) อธิบายผลของโพสต์ทีละตัว (ของ social_analysis)
+// ------------------------------------------------
     const handleExplain = async () => {
         if (!idInput.trim()) return;
 
@@ -101,6 +266,13 @@ export default function ModelEval() {
             ? explain.sentimentScore.toFixed(3)
             : "-";
 
+    const testLabel = testResult?.label || "-";
+    const testScore =
+        testResult?.sentimentScore !== undefined &&
+        testResult?.sentimentScore !== null
+            ? testResult.sentimentScore.toFixed(3)
+            : "-";
+
     return (
         <div className="homepage-container">
             {/* ===== Sidebar ===== */}
@@ -140,8 +312,9 @@ export default function ModelEval() {
                     <div className="header-left">
                         <h1>Model Evaluation</h1>
                         <div>
-                            ดูความน่าเชื่อถือของโมเดล และเหตุผลที่แต่ละโพสต์ถูกจัดเป็น{" "}
-                            positive / neutral / negative
+                            ดูความน่าเชื่อถือของโมเดล และให้ผู้ใช้ทดลอง
+                            ปรับชุดทดสอบ (evaluation set) และดูเหตุผลว่าแต่ละโพสต์ถูกจัดเป็น{" "}
+                            positive / neutral / negative อย่างไร
                         </div>
                     </div>
                 </header>
@@ -215,7 +388,201 @@ export default function ModelEval() {
                     )}
                 </section>
 
-                {/* ---------- ส่วนอธิบายโพสต์ทีละอัน ---------- */}
+                {/* ---------- จัดการ evaluation_samples ---------- */}
+                <section className="card">
+                    <h3>จัดการชุดทดสอบ (evaluation_samples)</h3>
+                    <p style={{ marginBottom: 8 }}>
+                        ส่วนนี้ให้ผู้ใช้ / อาจารย์ เพิ่มหรือลบตัวอย่างข้อความ
+                        ที่ใช้เป็น &quot;ข้อสอบ&quot; สำหรับวัดความแม่นของโมเดล
+                    </p>
+
+                    {samplesError && (
+                        <div
+                            className="placeholder"
+                            style={{ color: "#b91c1c" }}
+                        >
+                            {samplesError}
+                        </div>
+                    )}
+
+                    {/* ฟอร์มเพิ่ม */}
+                    <div
+                        style={{
+                            display: "flex",
+                            flexDirection: "column",
+                            gap: 8,
+                            marginBottom: 16,
+                        }}
+                    >
+                        <textarea
+                            value={newText}
+                            onChange={(e) => setNewText(e.target.value)}
+                            placeholder="พิมพ์ข้อความตัวอย่างที่ต้องการใช้เป็นชุดทดสอบ เช่น 'คณะบัญชีสอนดีมาก อาจารย์ใส่ใจ'"
+                            rows={3}
+                            style={{
+                                width: "100%",
+                                padding: "8px 10px",
+                                borderRadius: 10,
+                                border: "1px solid #cbd5e1",
+                                resize: "vertical",
+                            }}
+                        />
+                        <div
+                            style={{
+                                display: "flex",
+                                gap: 10,
+                                alignItems: "center",
+                                flexWrap: "wrap",
+                            }}
+                        >
+                            <select
+                                value={newLabel}
+                                onChange={(e) => setNewLabel(e.target.value)}
+                                style={{
+                                    padding: "6px 10px",
+                                    borderRadius: 10,
+                                    border: "1px solid #cbd5e1",
+                                }}
+                            >
+                                <option value="positive">positive</option>
+                                <option value="neutral">neutral</option>
+                                <option value="negative">negative</option>
+                            </select>
+                            <button
+                                className="btn primary"
+                                type="button"
+                                onClick={handleAddSample}
+                                disabled={savingSample}
+                            >
+                                {savingSample
+                                    ? "กำลังบันทึก..."
+                                    : "เพิ่มเข้าสู่ชุดทดสอบ"}
+                            </button>
+                        </div>
+                    </div>
+
+                    {/* ตารางแสดง samples */}
+                    {loadingSamples ? (
+                        <div className="placeholder">กำลังโหลดชุดทดสอบ...</div>
+                    ) : samples.length === 0 ? (
+                        <div className="placeholder">
+                            ยังไม่มี evaluation samples ในระบบ
+                        </div>
+                    ) : (
+                        <div className="table">
+                            <div className="t-head">
+                                <div style={{ width: 60 }}>ID</div>
+                                <div>Text</div>
+                                <div style={{ width: 100 }}>True Label</div>
+                                <div style={{ width: 80 }}>ลบ</div>
+                            </div>
+                            {samples.map((s) => (
+                                <div className="t-row" key={s.id}>
+                                    <div>{s.id}</div>
+                                    <div
+                                        title={s.text}
+                                        style={{
+                                            maxHeight: 48,
+                                            overflow: "hidden",
+                                            textOverflow: "ellipsis",
+                                        }}
+                                    >
+                                        {s.text}
+                                    </div>
+                                    <div>{s.trueLabel}</div>
+                                    <div>
+                                        <button
+                                            type="button"
+                                            className="btn danger"
+                                            onClick={() =>
+                                                handleDeleteSample(s.id)
+                                            }
+                                        >
+                                            ลบ
+                                        </button>
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    )}
+                </section>
+
+                {/* ---------- Playground: ลองให้โมเดลวิเคราะห์ข้อความสด ---------- */}
+                <section className="card">
+                    <h3>ทดลองให้โมเดลวิเคราะห์ข้อความ (Playground)</h3>
+                    <p style={{ marginBottom: 8 }}>
+                        ผู้ใช้สามารถพิมพ์ข้อความใด ๆ เพื่อดูว่าโมเดล ONNX
+                        วิเคราะห์ออกมาเป็น sentiment อะไร และคะแนนเท่าไหร่
+                    </p>
+
+                    <textarea
+                        value={testText}
+                        onChange={(e) => setTestText(e.target.value)}
+                        rows={3}
+                        placeholder="ลองพิมพ์ข้อความ เช่น 'ห้องสมุดใหม่สวยมากแต่คนเยอะไปหน่อย'"
+                        style={{
+                            width: "100%",
+                            padding: "8px 10px",
+                            borderRadius: 10,
+                            border: "1px solid #cbd5e1",
+                            resize: "vertical",
+                            marginBottom: 10,
+                        }}
+                    />
+                    <button
+                        className="btn primary"
+                        type="button"
+                        onClick={handleTryEval}
+                        disabled={loadingTest}
+                    >
+                        {loadingTest ? "กำลังวิเคราะห์..." : "ลองวิเคราะห์"}
+                    </button>
+
+                    {testError && (
+                        <div
+                            className="placeholder"
+                            style={{ color: "#b91c1c", marginTop: 10 }}
+                        >
+                            {testError}
+                        </div>
+                    )}
+
+                    {testResult && !testError && (
+                        <div
+                            style={{
+                                marginTop: 12,
+                                background: "#f8fafc",
+                                borderRadius: 12,
+                                padding: 16,
+                                border: "1px solid #e2e8f0",
+                            }}
+                        >
+                            <div style={{ marginBottom: 8 }}>
+                                <b>ข้อความที่ทดสอบ:</b>{" "}
+                                <span style={{ whiteSpace: "pre-wrap" }}>
+                                    {testText}
+                                </span>
+                            </div>
+                            <div
+                                style={{
+                                    display: "flex",
+                                    gap: 24,
+                                    flexWrap: "wrap",
+                                }}
+                            >
+                                <div>
+                                    <b>Label จากโมเดล:</b> {testLabel}
+                                </div>
+                                <div>
+                                    <b>คะแนนเชื่อมั่น (sentimentScore):</b>{" "}
+                                    {testScore}
+                                </div>
+                            </div>
+                        </div>
+                    )}
+                </section>
+
+                {/* ---------- ส่วนอธิบายโพสต์ทีละอัน (social_analysis) ---------- */}
                 <section className="card">
                     <h3>อธิบายผลวิเคราะห์ของโพสต์ทีละรายการ</h3>
 
