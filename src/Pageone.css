@@ -129,3 +129,66 @@ body{
 .login-btn:hover{
     background-color: #ffb300;/*มาเป*/
 }
+
+/* ==================== RESPONSIVE LAYOUT ==================== */
+
+/* แท็บเล็ตลงมา: ลดจำนวนคอลัมน์บางส่วน */
+@media (max-width: 1024px) {
+    .widgets-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .kpi-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .keywords-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+}
+
+/* มือถือ: ให้ sidebar ขึ้นไปอยู่ด้านบน เต็มความกว้าง */
+@media (max-width: 768px) {
+    /* layout หลักทุกหน้า */
+    .dashboard-container,
+    .homepage-container,
+    .trends-layout {
+        flex-direction: column;    /* จากซ้าย-ขวา → บน-ล่าง */
+        min-height: 100vh;
+    }
+
+    .sidebar {
+        flex: 0 0 auto;
+        width: 100%;
+        padding: 20px 16px;
+    }
+
+    .main-content {
+        flex: 1;
+        width: 100%;
+        padding: 16px;
+    }
+
+    /* การ์ด/กริดต่าง ๆ ให้เรียง 1 คอลัมน์อ่านง่ายบนมือถือ */
+    .widgets-grid,
+    .homepage-widgets {
+        grid-template-columns: 1fr;
+        gap: 16px;
+    }
+
+    .summary-row,
+    .kpi-grid,
+    .keywords-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .filters-row {
+        flex-direction: column;
+    }
+
+    /* ตารางโพสต์ – บีบเหลือคอลัมน์หลัก ๆ */
+    .t-head,
+    .t-row {
+        grid-template-columns: 2.5fr 1fr 1fr;
+    }
+}
