@@ -1,21 +1,16 @@
 // ===================================================
-// ================ CONFIG (Smart API BASE) ===========
+// ================ CONFIG (Smart API BASE) ==========
 // ===================================================
-//
-// โหมด prod (Netlify)  -> ยิงไป Render
-// โหมด dev (npm run dev) -> ยิงไป backend :8082 บนเครื่องเรา
-//
 
 const isProd = import.meta.env.PROD;
 
 // BASE ของ backend (ไม่รวม /api)
 export const API_BASE = isProd
-    ? "https://utccbackend.onrender.com"           // ✅ Render (ออนไลน์)
-    : `http://${window.location.hostname}:8082`;   // ✅ dev บนเครื่อง
+    ? "https://utccbackend.onrender.com"           // Render (ออนไลน์)
+    : `http://${window.location.hostname}:8082`;   // dev บนเครื่อง
 
-// ✅ backend ของเรามี prefix /api อยู่แล้ว (@RequestMapping("/api/analysis"))
-//    เพราะงั้นต้องใส่ "/api" ตรงนี้
-export const API_PREFIX = "/api";
+// ❗ ตอนนี้ backend ไม่มี /api แล้ว → ห้ามใส่ "/api"
+export const API_PREFIX = "";                      // <<<<<< แก้เป็นค่าว่าง
 
 // ===================================================
 // ====================== HELPERS =====================
@@ -41,7 +36,6 @@ function toQuery(params = {}) {
     return q.toString();
 }
 
-// ---------------------- HTTP WRAPPER ----------------------
 async function http(method, path, { params, body } = {}) {
     const qs = toQuery(params);
     const url = `${API_BASE}${path}${qs ? `?${qs}` : ""}`;
@@ -49,9 +43,6 @@ async function http(method, path, { params, body } = {}) {
     const res = await fetch(url, {
         method,
         headers: body ? { "Content-Type": "application/json" } : undefined,
-        // ตอนนี้เราไม่ได้ใช้ cookie อะไรเป็นพิเศษ สามารถไม่ใส่ credentials ก็ได้
-        // ถ้าภายหลังใช้ session/cookie ค่อยเปิดบรรทัดล่างนี้
-        // credentials: "include",
         body: body ? JSON.stringify(body) : undefined,
     });
 
@@ -68,7 +59,7 @@ const get = (path, params) => http("GET", path, { params });
 const post = (path, body) => http("POST", path, { body });
 const put = (path, body) => http("PUT", path, { body });
 
-// ทำให้ทุก path มี API_PREFIX นำหน้าอัตโนมัติ เช่น "/api/analysis"
+// ตอนนี้ p() จะให้ path แบบไม่มี /api เช่น "/analysis"
 const p = (sub) => joinPath(API_PREFIX, sub);
 
 // ===================================================
@@ -77,54 +68,54 @@ const p = (sub) => joinPath(API_PREFIX, sub);
 
 // ---------------- Dashboard / Mentions ----------------
 export function getTweetAnalysis(params = {}) {
-    // GET /api/analysis
+    // GET /analysis
     return get(p("/analysis"), params);
 }
 
 export function getTweetDates(params = {}) {
-    // GET /api/analysis/tweet-dates
+    // GET /analysis/tweet-dates
     return get(p("/analysis/tweet-dates"), params);
 }
 
 export function getAnalysisSummary(params = {}) {
-    // GET /api/analysis/summary
+    // GET /analysis/summary
     return get(p("/analysis/summary"), params);
 }
 
 // ---------------- Alerts ----------------
 export function postScanAlerts() {
-    // POST /api/alerts/scan
+    // POST /alerts/scan
     return post(p("/alerts/scan"));
 }
 
 export function postTestMail() {
-    // POST /api/alerts/test
+    // POST /alerts/test
     return post(p("/alerts/test"));
 }
 
 // ---------------- Model Evaluation ----------------
 export function getModelEval() {
-    // GET /api/analysis/eval
+    // GET /analysis/eval
     return get(p("/analysis/eval"));
 }
 
 export function getExplainById(id) {
-    // GET /api/analysis/{id}/explain
+    // GET /analysis/{id}/explain
     return get(p(`/analysis/${id}/explain`));
 }
 
 // ---------------- Custom Keywords ----------------
 export function getCustomKeywords() {
-    // GET /api/custom-keywords
+    // GET /custom-keywords
     return get(p("/custom-keywords"));
 }
 
 export function createCustomKeyword(payload) {
-    // POST /api/custom-keywords
+    // POST /custom-keywords
     return post(p("/custom-keywords"), payload);
 }
 
 export function updateCustomKeyword(id, payload) {
-    // PUT /api/custom-keywords/{id}
+    // PUT /custom-keywords/{id}
     return put(p(`/custom-keywords/${id}`), payload);
 }
