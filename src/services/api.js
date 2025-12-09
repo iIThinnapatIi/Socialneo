@@ -2,22 +2,19 @@
 // ================ CONFIG (Smart API BASE) ===========
 // ===================================================
 //
-// ถ้าเป็นโหมด production (Netlify)  -> ยิงไป Render
-// ถ้าเป็นโหมด dev (npm run dev)      -> ยิงไป backend :8082 บนเครื่องเรา
+// โหมด prod (Netlify)  -> ยิงไป Render
+// โหมด dev (npm run dev) -> ยิงไป backend :8082 บนเครื่องเรา
 //
 
 const isProd = import.meta.env.PROD;
 
+// BASE ของ backend (ไม่รวม path อื่น ๆ)
 export const API_BASE = isProd
-    ? "https://utccbackend.onrender.com"          // ✅ ใช้ Render ตอนออนไลน์
-    : `http://${window.location.hostname}:8082`;  // ✅ ใช้ backend :8082 ตอน dev
+    ? "https://utccbackend.onrender.com"              // ✅ Render (ออนไลน์)
+    : `http://${window.location.hostname}:8082`;      // ✅ dev บนเครื่อง
 
-// ⚠ ตอนนี้ backend บน Render **ไม่มี** /api นำหน้า
-// ถ้าใส่ "/api" จะกลายเป็น /api/analysis แล้ว 404
-export const API_PREFIX = ""; // ✅ ปล่อยว่างไว้
-
-// ❌ ไม่ใช้ cookie / credentials อีกแล้ว (ตัด CORS ง่ายขึ้น)
-// const CREDENTIALS = "include";
+// ตอนนี้ backend **ไม่มี** /api prefix แล้ว → ปล่อยให้ว่าง
+export const API_PREFIX = "";                       // สำคัญ! ห้ามใส่ "/api"
 
 
 // ===================================================
@@ -52,13 +49,14 @@ async function http(method, path, { params, body } = {}) {
     const res = await fetch(url, {
         method,
         headers: body ? { "Content-Type": "application/json" } : undefined,
-        // ❌ ไม่ต้องส่ง credentials แล้ว
-        // credentials: CREDENTIALS,
+        // ❌ ไม่ใช้ credentials แล้ว จะได้ไม่ติด CORS เรื่อง cookie
+        // credentials: "include",
         body: body ? JSON.stringify(body) : undefined,
     });
 
     if (!res.ok) {
-        throw new Error(`API Error ${res.status}`);
+        const text = await res.text().catch(() => "");
+        throw new Error(`API Error ${res.status}: ${text || url}`);
     }
 
     const ct = res.headers.get("content-type") || "";
@@ -72,51 +70,60 @@ const put = (path, body) => http("PUT", path, { body });
 // ทำให้ทุก path มี API_PREFIX นำหน้าอัตโนมัติ (ตอนนี้คือ "")
 const p = (sub) => joinPath(API_PREFIX, sub);
 
-
 // ===================================================
 // ======================== APIs ======================
 // ===================================================
 
 // ---------------- Dashboard / Mentions ----------------
 export function getTweetAnalysis(params = {}) {
+    // GET /analysis
     return get(p("/analysis"), params);
 }
 
 export function getTweetDates(params = {}) {
+    // GET /analysis/tweet-dates
     return get(p("/analysis/tweet-dates"), params);
 }
 
 export function getAnalysisSummary(params = {}) {
+    // GET /analysis/summary
     return get(p("/analysis/summary"), params);
 }
 
 // ---------------- Alerts ----------------
 export function postScanAlerts() {
+    // POST /alerts/scan
     return post(p("/alerts/scan"));
 }
 
 export function postTestMail() {
+    // POST /alerts/test
     return post(p("/alerts/test"));
 }
 
 // ---------------- Model Evaluation ----------------
 export function getModelEval() {
+    // GET /analysis/eval
     return get(p("/analysis/eval"));
 }
 
 export function getExplainById(id) {
+    // GET /analysis/{id}/explain
     return get(p(`/analysis/${id}/explain`));
 }
 
 // ---------------- Custom Keywords ----------------
 export function getCustomKeywords() {
+    // GET /custom-keywords
     return get(p("/custom-keywords"));
 }
 
 export function createCustomKeyword(payload) {
+    // POST /custom-keywords
     return post(p("/custom-keywords"), payload);
 }
 
 export function updateCustomKeyword(id, payload) {
+    // PUT /custom-keywords/{id}
     return put(p(`/custom-keywords/${id}`), payload);
 }
