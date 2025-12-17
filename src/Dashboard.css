@@ -394,5 +394,40 @@
         padding: 12px 14px 14px;
     }
 }
+/* ===============================
+   Model Eval UI
+================================ */
+
+.form-grid {
+    display: grid;
+    grid-template-columns: 1fr auto;
+    gap: 12px;
+    align-items: start;
+}
+
+.form-row {
+    display: grid;
+    grid-template-columns: 1fr auto;
+    gap: 12px;
+    margin-bottom: 12px;
+}
+
+.result-card {
+    margin-top: 14px;
+    padding: 16px;
+    border-radius: 12px;
+    background: #f8fafc;
+    border: 1px solid #e2e8f0;
+}
+
+.result-card > div {
+    margin-bottom: 6px;
+}
+
+.placeholder.error {
+    color: #b91c1c;
+    margin-top: 10px;
+}
+
 
 
