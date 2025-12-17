@@ -66,7 +66,7 @@ export default function Dashboard() {
     // Normalize
     const normRows = useMemo(() => {
         return rows.map((r, idx) => ({
-            tweetId: r.tweetId || r.id || String(idx),
+            id: r.id || String(idx),
             title: clip(r.text || "-", 80),
             faculty: r.faculty || "ไม่ระบุ",
             sentiment:
@@ -76,10 +76,12 @@ export default function Dashboard() {
                         ? "negative"
                         : "neutral",
             date: (r.analyzedAt || r.createdAt || "").slice(0, 10),
-            source: r.source || "X",
-            url: r.tweetId ? `https://x.com/i/web/status/${r.tweetId}` : "-",
+            source: r.source || "-",
+            // ใช้URLจากbackend
+            url: r.originalUrl || "-",
         }));
     }, [rows]);
+
 
     // Local fallback
     const { totalsLocal, topFacultiesLocal, latestItems, sentShareLocal } =
