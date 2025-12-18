@@ -15,7 +15,7 @@ export function useFetch(asyncFn, deps = []) {
             setErr("");
 
             try {
-                const res = await asyncFn();   // ❗ asyncFn() ต้องไม่มี credentials
+                const res = await asyncFn();   // asyncFn() ต้องไม่มี credentials
                 if (alive) setData(res);
             } catch (e) {
                 if (alive) setErr(e?.message || "โหลดข้อมูลไม่สำเร็จ");
